@@ -2,15 +2,34 @@ import json
 
 class Response:
     def __init__(self):
+        self.status_code = ""
+        self.status_msg = ""
+        self.headers_dict = {}
+        self.cookies_dict = {}
+        self.body =b""
         pass
 
     def set_status(self, code, text):
+        self.status_code = code
+        self.status_msg = text
         pass
 
     def headers(self, headers):
+        for header in headers:
+            # do we update headers that already exist in headers_dict
+            # if input dict has same keys but different vals as headers_dict
+            #
+            # actually we should, we have to update header value with each new cookie added
+            #
+            # if header.key in self.headers_dict:
+            self.headers_dict[header.key] = header.value
         pass
 
+    # do i have to? depending on how i parse headers i probably shouldn't have to add extra here
+    # actually, since this can be called multiple times, i guess it should still update the headers dictionary
+    # it's only to_data() that probably doesn't have to look at both headers and cookies separately
     def cookies(self, cookies):
+
         pass
 
     def bytes(self, data):

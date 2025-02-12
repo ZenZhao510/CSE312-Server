@@ -28,9 +28,9 @@ class Request:
         if "Cookie" in self.headers:
             cookieslist = self.headers["Cookies"].split(';')
             for cookie in cookieslist:
-                cookeyval = cookie.split(':')
+                cookeyval = cookie.split('=')
                 self.cookies[cookeyval[0]] = cookeyval[1].strip()
-        self.body = lines[i+1].bytes()
+        self.body = bytes(lines[i+1],"utf-8")
 
 
 def test1():
