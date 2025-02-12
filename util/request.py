@@ -2,13 +2,35 @@ class Request:
 
     def __init__(self, request: bytes):
         # TODO: parse the bytes of the request and populate the following instance variables
-
+        data = str(request)
+        lines = data.split('\r\n')
+        numlines = len(lines)
+        method_path_http = lines[0].split()
+        print(data)
+        # have to figure out how to parse bytes
         self.body = b""
-        self.method = ""
-        self.path = ""
-        self.http_version = ""
+        # GET POST etc
+        self.method = method_path_http[0]
+        # Path Requested
+        self.path = method_path_http[1]
+        # HTTP ver
+        self.http_version = method_path_http[2]
+        # Host
         self.headers = {}
+        i:int = 1
+        while lines[i] != "":
+            header = lines[i].split(':')
+            self.headers[header[0]] = header[1].strip()
+            i+=1
+        # Multiple values separated by semicolons
+        # All under 'Cookie' header
         self.cookies = {}
+        if "Cookie" in self.headers:
+            cookieslist = self.headers["Cookies"].split(';')
+            for cookie in cookieslist:
+                cookeyval = cookie.split(':')
+                self.cookies[cookeyval[0]] = cookeyval[1].strip()
+        self.body = lines[i+1].bytes()
 
 
 def test1():
