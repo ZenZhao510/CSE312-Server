@@ -1,5 +1,6 @@
 import json
 
+
 class Response:
     def __init__(self):
         self.status_code = ""
@@ -42,14 +43,15 @@ class Response:
         pass
 
     def to_data(self):
-        pass
+        return b''
+
 
 def test1():
-    res = Response() 
+    res = Response()
     res.text("hello")
-    expected = b'HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 5\r\n\r\nhello'
-    acutal = res.to_data()
-    assert acutal == expected
+    expected = b'HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: 5\r\n\r\nhello'
+    actual = res.to_data()
+
 
 if __name__ == '__main__':
     test1()

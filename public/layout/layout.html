@@ -6,7 +6,6 @@
     <title>312site.com</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="icon" type="image/x-icon" href="/public/imgs/favicon.ico" />
-    <link rel="stylesheet" href="/public/css/globals.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="/public/css/googleButton.css" />
@@ -191,7 +190,7 @@
       lucide.createIcons();
 
       async function main() {
-        const userProfile = await (await fetch("/api/users/@me")).json();
+        // const userProfile = await (await fetch("/api/users/@me")).json();
         const loginButton = document.getElementById("login-button");
         const registerButton = document.getElementById("register-button");
         const loggedIn = document.getElementById("logged-in");
