@@ -24,6 +24,7 @@ class Response:
             #
             # if header.key in self.headers_dict:
             self.headers_dict[header.key] = header.value
+        return self
         pass
 
     # do i have to? depending on how i parse headers i probably shouldn't have to add extra here
@@ -31,15 +32,22 @@ class Response:
     # it's only to_data() that probably doesn't have to look at both headers and cookies separately
     def cookies(self, cookies):
 
+        return self
         pass
 
     def bytes(self, data):
+
+        return self
         pass
 
     def text(self, data):
+
+        return self
         pass
 
     def json(self, data):
+
+        return self
         pass
 
     def to_data(self):
