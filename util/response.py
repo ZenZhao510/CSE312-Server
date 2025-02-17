@@ -13,6 +13,7 @@ class Response:
     def set_status(self, code, text):
         self.status_code = code
         self.status_msg = text
+        return self
         pass
 
     def headers(self, headers):
@@ -23,7 +24,9 @@ class Response:
             # actually we should, we have to update header value with each new cookie added
             #
             # if header.key in self.headers_dict:
-            self.headers_dict[header.key] = header.value
+            # an if statement is probably not needed, the below code should work for both new and existing headers
+            # this does not work for duplicate headers, but we wouldn't be using a dict for those anyways
+            self.headers_dict[header] = headers[header]
         return self
         pass
 
@@ -31,12 +34,19 @@ class Response:
     # actually, since this can be called multiple times, i guess it should still update the headers dictionary
     # it's only to_data() that probably doesn't have to look at both headers and cookies separately
     def cookies(self, cookies):
-
+        # add cookies to cookies dict
+        for cookie in cookies:
+            self.cookies_dict[cookie] = cookies[cookie]
+        # add new cookies to headers
+        val = ""
+        for cookie in self.cookies_dict:
+            val = val + cookie + "=" + self.cookies_dict[cookie] + "; "
+        self.headers(self, {"Cookies": val})
         return self
         pass
 
     def bytes(self, data):
-
+        
         return self
         pass
 
@@ -46,7 +56,7 @@ class Response:
         pass
 
     def json(self, data):
-
+        self.headers({"Content-Type":"application/json"})
         return self
         pass
 
