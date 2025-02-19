@@ -3,8 +3,8 @@ import json
 
 class Response:
     def __init__(self):
-        self.status_code = ""
-        self.status_msg = ""
+        self.status_code = "200"
+        self.status_msg = "OK"
         self.headers_dict = {}
         self.cookies_dict = {}
         self.body =b""
@@ -21,7 +21,7 @@ class Response:
             # do we update headers that already exist in headers_dict
             # if input dict has same keys but different vals as headers_dict
             #
-            # actually we should, we have to update header value with each new cookie added
+            # we probably should...
             #
             # if header.key in self.headers_dict:
             # an if statement is probably not needed, the below code should work for both new and existing headers
@@ -31,37 +31,45 @@ class Response:
         pass
 
     # do i have to? depending on how i parse headers i probably shouldn't have to add extra here
-    # actually, since this can be called multiple times, i guess it should still update the headers dictionary
+    # actually, since this can be called multiple times, i guess it should still update the headers dictionary?
+    # ... but as Set-Cookie can be included as a header multiple times, probably not
     # it's only to_data() that probably doesn't have to look at both headers and cookies separately
     def cookies(self, cookies):
         # add cookies to cookies dict
         for cookie in cookies:
             self.cookies_dict[cookie] = cookies[cookie]
-        # add new cookies to headers
-        val = ""
-        for cookie in self.cookies_dict:
-            val = val + cookie + "=" + self.cookies_dict[cookie] + "; "
-        self.headers(self, {"Cookies": val})
         return self
         pass
 
     def bytes(self, data):
-        
+        self.body = self.body + data
+        self.headers({"Content-Length":len(self.body)})
         return self
         pass
 
     def text(self, data):
-
+        self.bytes(self, data.encode())
         return self
         pass
 
     def json(self, data):
         self.headers({"Content-Type":"application/json"})
+        self.body = json.dumps(data).encode()
+        self.headers({"Content-Length":len(self.body)})
         return self
         pass
 
     def to_data(self):
-        return b''
+        self.headers({"X-Content-Type-Options":"nosniff"})
+        if ("Content-Type" not in self.headers_dict):
+            self.headers("Content-Type", "text/plain; charset=utf-8")
+        ret = "HTTP/1.1 " + self.status_code + " " + self.status_msg + "\r\n"
+        for header in self.headers_dict:
+            ret = ret + header + ": " + self.headers_dict[header] + "\r\n"
+        for cookie in self.cookies_dict:
+            ret = ret + "Set-Cookie: " + cookie + "=" + self.cookies_dict[cookie] + "\r\n"
+        ret = ret + "\r\n"
+        return ret.encode() + self.body + b"\r\n"
 
 
 def test1():

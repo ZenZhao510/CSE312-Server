@@ -6,3 +6,11 @@ def hello_path(request, handler):
     res = Response()
     res.text("hello")
     handler.request.sendall(res.to_data())
+
+def index_path(request, handler):
+    res = Response()
+    handler.request.sendall(res.todata())
+
+def chat_path(request, handler):
+    res = Response()
+    handler.request.sendall(res.todata())
