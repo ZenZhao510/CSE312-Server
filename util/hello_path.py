@@ -7,6 +7,26 @@ def hello_path(request, handler):
     res.text("hello")
     handler.request.sendall(res.to_data())
 
+def public_path(request, handler):
+    res = Response()
+    img = ["jpg","ico","webp","gif"]
+    # can't have '/' in filepath according to @92
+    filepath = request.path[1:]
+    path_array = filepath.split('.')
+    ext = path_array[1]
+    with open(filepath, 'r') as file:
+        read_data = file.read()
+        # use file extensions to get MIME type
+        if ext in img:
+            res.bytes(res, read_data)
+            if ext == "ico":
+                res.headers(res,{"Content-Type":"image/x-icon"})
+            else:
+                res.headers(res,{"Content-Type":"image/"+ext})
+        
+    handler.request.sendall(res.to_data())
+
+
 def index_path(request, handler):
     res = Response()
     handler.request.sendall(res.todata())
@@ -14,3 +34,9 @@ def index_path(request, handler):
 def chat_path(request, handler):
     res = Response()
     handler.request.sendall(res.todata())
+
+def not_found(request, handler):
+    res = Response()
+    res.set_status(res, "404", "Not Found")
+    res.text(res, "The requested resource cannot be found")
+    handler.request.sendall(res.to_data())
