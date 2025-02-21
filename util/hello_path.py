@@ -1,5 +1,5 @@
 from util.response import Response
-
+import os
 
 # This path is provided as an example of how to use the router
 def hello_path(request, handler):
@@ -16,32 +16,67 @@ def public_path(request, handler):
     path_array = filepath.split('.')
     ext = path_array[1]
     # check if filepath exists before opening
-    with open(filepath, 'r') as file:
-        read_data = file.read()
-        # use file extensions to get MIME type
-        if ext in img:
-            res.bytes(res, read_data)
-            if ext == "ico":
-                res.headers(res,{"Content-Type":"image/x-icon"})
-            else:
-                res.headers(res,{"Content-Type":"image/"+ext})
-        elif ext in txt:
-            res.bytes(res, read_data)
-            res.headers(res,{"Content-Type":"text"/+ext})
-        
-    handler.request.sendall(res.to_data())
+    if os.path.exists(filepath):
+        print(filepath)
+        with open(filepath, 'rb') as file:
+            read_data = file.read()
+            # use file extensions to get MIME type
+            if ext in img:
+                res.bytes(read_data)
+                if ext == "ico":
+                    res.headers({"Content-Type":"image/x-icon"})
+                elif ext == "jpg":
+                    res.headers({"Content-Type":"image/jpeg"})
+                else:
+                    res.headers({"Content-Type":"image/"+ext})
+            elif ext in txt:
+                res.bytes(read_data)
+                if ext == "js":
+                    res.headers({"Content-Type":"text/javascript"})
+                else:
+                    res.headers({"Content-Type":"text/"+ext})        
+        handler.request.sendall(res.to_data())
+    else:
+        res.set_statusset_status("404","Not Found").text("The requested resource cannot be found")
+        handler.request.sendall(res.to_data())
 
 
 def index_path(request, handler):
     res = Response()
-    handler.request.sendall(res.todata())
+    layout = ""
+    replace = ""
+    with open("public/layout/layout.html", 'r', encoding = 'utf-8') as file:
+        layout = file.read()
+    with open ("public/index.html", 'r', encoding = 'utf-8') as file:
+        replace = file.read()
+    res.text(layout.replace("{{content}}", replace))
+    res.headers({"Content-Type":"text/html"})
+    handler.request.sendall(res.to_data())
 
 def chat_path(request, handler):
     res = Response()
-    handler.request.sendall(res.todata())
-
-def not_found(request, handler):
-    res = Response()
-    res.set_status(res, "404", "Not Found")
-    res.text(res, "The requested resource cannot be found")
+    layout = ""
+    replace = ""
+    with open("public/layout/layout.html", 'r', encoding = 'utf-8') as file:
+        layout = file.read()
+    with open ("public/chat.html", 'r', encoding = 'utf-8') as file:
+        replace = file.read()
+    res.text(layout.replace("{{content}}", replace))
+    res.headers({"Content-Type":"text/html"})
     handler.request.sendall(res.to_data())
+
+def post_chat(request, handler):
+    res = Response()
+    res.set_status("200","OK")
+    res.text("message sent")
+    handler.request.sendall(res.to_data())
+
+def get_chat(request, handler):
+    res = Response()
+
+def patch_chat(request, handler):
+    pass
+
+def delete_chat(request, handler):
+    pass
+
