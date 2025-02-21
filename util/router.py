@@ -18,6 +18,7 @@ class Router:
                     pass
                 else:
                     # not sure if this works (calling function from obj attribute)
+                    # zaid said this works so ig it does
                     route.action(request,handler)
                     return
         # figure out how to not call this if successful return (probably just return)

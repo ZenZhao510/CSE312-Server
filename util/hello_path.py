@@ -10,6 +10,7 @@ def hello_path(request, handler):
 def public_path(request, handler):
     res = Response()
     img = ["jpg","ico","webp","gif"]
+    txt = ["js","css"]
     # can't have '/' in filepath according to @92
     filepath = request.path[1:]
     path_array = filepath.split('.')
@@ -24,6 +25,9 @@ def public_path(request, handler):
                 res.headers(res,{"Content-Type":"image/x-icon"})
             else:
                 res.headers(res,{"Content-Type":"image/"+ext})
+        elif ext in txt:
+            res.bytes(res, read_data)
+            res.headers(res,{"Content-Type":"text"/+ext})
         
     handler.request.sendall(res.to_data())
 
