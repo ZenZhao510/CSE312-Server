@@ -14,6 +14,7 @@ def public_path(request, handler):
     filepath = request.path[1:]
     path_array = filepath.split('.')
     ext = path_array[1]
+    # check if filepath exists before opening
     with open(filepath, 'r') as file:
         read_data = file.read()
         # use file extensions to get MIME type

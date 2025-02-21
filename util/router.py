@@ -4,13 +4,11 @@ class Router:
 
     def __init__(self):
         routes = []
-        pass
 
     def add_route(self, method, path, action, exact_path=False):
         new_route = Route()
         new_route.set_method(self,method).set_path(self,path).set_action(self,action).set_exact_path(self,exact_path)
         self.routes.add(new_route)
-        pass
 
     def route_request(self, request, handler):
         # check if any route is a substring? potential problem if routes exist to "/public" and "/public/img"
@@ -19,9 +17,10 @@ class Router:
                 if (route.exact_path == True) and (route.path != request.path):
                     pass
                 else:
-                    # test if path exists? "/public/img" is a substring of "public/img/dog.jpg" 
-                    # #but what if "dog.jpg" doesn't exist in "public/img"
+                    # not sure if this works (calling function from obj attribute)
+                    route.action(request,handler)
                     return
+        # figure out how to not call this if successful return (probably just return)
         not_found = Response()
         not_found.set_status(not_found,"404","Not Found").text(not_found,"The requested resource cannot be found")
         handler.request.sendall(not_found.to_data())
