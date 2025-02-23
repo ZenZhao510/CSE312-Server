@@ -2,7 +2,7 @@ from util.response import Response
 import os
 import json
 import uuid
-import database
+import util.database
 
 # This path is provided as an example of how to use the router
 def hello_path(request, handler):
@@ -79,27 +79,36 @@ def post_chat(request, handler):
     message = {}
     message["content"] = body["content"]
     if "session" in request.cookies:
-        message["session"] = request.cookies["session"]
+        message["author"] = request.cookies["session"]
         # session cookie should already have been set in response by this conditional
     else:
         session = str(uuid.uuid4())
-        message["session"] = session
+        message["author"] = session
     # set updated or not
     message["updated"] = False
-    database.chat_collection.insert_one(message)
+    message["content"] = body["content"]
+    util.database.chat_collection.insert_one(message)
     
     handler.request.sendall(res.to_data())
 
 def get_chat(request, handler):
     res = Response()
-    chats = list(database.chat_collection.find({}))
+    # grab every chat and simply stuff them into a list
+    chats = list(util.database.chat_collection.find({}))
     res.json({"messages":chats})
     handler.request.sendall(res.to_data())
 
-
-
 def patch_chat(request, handler):
-    pass
+    res = Response()
+    body = json.loads(request.body.decode())
+    id = request.path.split("/api/chats/")[1]
+    if "author" not in request.cookies or util.database.chat_collection.find_one({"id":id})["author"] != request.cookies["author"]:
+        res.set_status("403","Forbidden")
+        res.text("User lacks permission to update this message.")
+    else:
+        util.database.chat_collection.update_one({"id":id},{"$set":{"content":body["content"]}})
+        res.text("Message updated.")
+    handler.request.sendall(res.to_data())
 
 def delete_chat(request, handler):
     pass
