@@ -81,15 +81,17 @@ def post_chat(request, handler):
     else:
         session = str(uuid.uuid4())
         message["author"] = session
+        res.cookies({"session":session})
+    # should there be a separate "id" asides from "_id"?
+    message["id"] = str(uuid.uuid4())
+    message["content"] = body["content"]
     # set updated to False
     message["updated"] = False
-    message["content"] = body["content"]
     # print(message)
     util.database.chat_collection.insert_one(message)
     
     res.text("message sent")
     res.cookies(request.cookies)
-    # print(res.to_data)
     handler.request.sendall(res.to_data())
 
 def get_chat(request, handler):

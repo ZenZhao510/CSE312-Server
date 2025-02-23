@@ -76,6 +76,15 @@ def test2():
     assert request.cookies["pig"] == "False"
     assert request.body == b""  
 
+def test3():
+    request = Request(b'GET / HTTP/1.1\r\nHost: localhost:8080\r\nConnection: keep-alive\r\nCookie: id=1\r\n\r\n')
+    assert "Cookie" in request.headers
+    assert request.headers["Cookie"] == "id=1"
+    assert bool(request.cookies) == True
+    assert "id" in request.cookies
+    assert request.cookies["id"] == "1"
+
 if __name__ == '__main__':
     test1()
     test2()
+    test3()
