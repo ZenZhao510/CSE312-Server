@@ -26,7 +26,7 @@ class Response:
             # if header.key in self.headers_dict:
             # an if statement is probably not needed, the below code should work for both new and existing headers
             # this does not work for duplicate headers, but we wouldn't be using a dict for those anyways
-            self.headers_dict[header] = headers[header]
+            self.headers_dict[header] = str(headers[header])
         return self
         pass
 
@@ -37,7 +37,7 @@ class Response:
     def cookies(self, cookies):
         # add cookies to cookies dict
         for cookie in cookies:
-            self.cookies_dict[cookie] = cookies[cookie]
+            self.cookies_dict[cookie] = str(cookies[cookie])
         return self
         pass
 
@@ -53,7 +53,7 @@ class Response:
 
     def json(self, data):
         self.headers({"Content-Type":"application/json"})
-        self.body = json.dumps(data).encode()
+        self.body = json.dumps(data, default=str).encode()
         return self
         pass
 
@@ -61,11 +61,11 @@ class Response:
         self.headers({"X-Content-Type-Options":"nosniff", "Content-Length":str(len(self.body))})
         if ("Content-Type" not in self.headers_dict):
             self.headers({"Content-Type":"text/plain; charset=utf-8"})
-        ret = "HTTP/1.1 " + self.status_code + " " + self.status_msg + "\r\n"
+        ret = "HTTP/1.1 " + str(self.status_code) + " " + str(self.status_msg) + "\r\n"
         for header in self.headers_dict:
-            ret = ret + header + ": " + self.headers_dict[header] + "\r\n"
+            ret = ret + str(header) + ": " + str(self.headers_dict[header]) + "\r\n"
         for cookie in self.cookies_dict:
-            ret = ret + "Set-Cookie: " + cookie + "=" + self.cookies_dict[cookie] + "\r\n"
+            ret = ret + "Set-Cookie: " + str(cookie) + "=" + str(self.cookies_dict[cookie]) + "\r\n"
         ret = ret + "\r\n"
         return ret.encode() + self.body + b"\r\n"
 

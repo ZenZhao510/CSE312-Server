@@ -21,7 +21,6 @@ def public_path(request, handler):
     # check if filepath exists before opening
     # Tina confirmed os is allowed for this
     if os.path.exists(filepath):
-        print(filepath)
         with open(filepath, 'rb') as file:
             read_data = file.read()
             # use file extensions to get MIME type
@@ -74,27 +73,30 @@ def post_chat(request, handler):
     body = json.loads(request.body.decode())
     # prepare response for a valid message
     res = Response()
-    res.text("message sent")
-    res.cookies(request.cookies)
     message = {}
     message["content"] = body["content"]
     if "session" in request.cookies:
         message["author"] = request.cookies["session"]
-        # session cookie should already have been set in response by this conditional
+        # session cookie should be set later by the cookies method
     else:
         session = str(uuid.uuid4())
         message["author"] = session
-    # set updated or not
+    # set updated to False
     message["updated"] = False
     message["content"] = body["content"]
+    # print(message)
     util.database.chat_collection.insert_one(message)
     
+    res.text("message sent")
+    res.cookies(request.cookies)
+    # print(res.to_data)
     handler.request.sendall(res.to_data())
 
 def get_chat(request, handler):
     res = Response()
     # grab every chat and simply stuff them into a list
     chats = list(util.database.chat_collection.find({}))
+    # print(chats)
     res.json({"messages":chats})
     handler.request.sendall(res.to_data())
 
