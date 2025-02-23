@@ -39,7 +39,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 def main():
     host = "0.0.0.0"
     # make sure to change back to 8080 for submissions
-    port = 8080
+    port = 8070
     socketserver.TCPServer.allow_reuse_address = True
 
     server = socketserver.TCPServer((host, port), MyTCPHandler)

@@ -75,13 +75,16 @@ def post_chat(request, handler):
     res = Response()
     message = {}
     message["content"] = body["content"]
-    if "session" in request.cookies:
-        message["author"] = request.cookies["session"]
-        # session cookie should be set later by the cookies method
-    else:
-        session = str(uuid.uuid4())
-        message["author"] = session
-        res.cookies({"session":session})
+    # if "session" in request.cookies:
+    #     message["author"] = request.cookies["session"]
+    #     # session cookie should be set later by the cookies method
+    # else:
+    #     session = str(uuid.uuid4())
+    #     message["author"] = session
+    #     res.cookies({"session":session})
+    session = str(uuid.uuid4())
+    message["author"] = session
+    res.cookies({"session":session})
     # should there be a separate "id" asides from "_id"?
     message["id"] = str(uuid.uuid4())
     message["content"] = body["content"]
@@ -92,6 +95,7 @@ def post_chat(request, handler):
     
     res.text("message sent")
     res.cookies(request.cookies)
+    # print(res.to_data())
     handler.request.sendall(res.to_data())
 
 def get_chat(request, handler):

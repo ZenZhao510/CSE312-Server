@@ -42,6 +42,7 @@ class Request:
                 cookieslist = self.headers["Cookie"].split(';')
                 for cookie in cookieslist:
                     cookeyval = cookie.split('=')
+                    # print(cookeyval)
                     self.cookies[cookeyval[0].strip()] = cookeyval[1].strip()
 
 
