@@ -1,6 +1,8 @@
 from util.response import Response
 import os
-from pymongo import MongoClient
+import json
+import uuid
+import database
 
 # This path is provided as an example of how to use the router
 def hello_path(request, handler):
@@ -69,16 +71,32 @@ def chat_path(request, handler):
 
 def post_chat(request, handler):
     # parse incoming request json
-    body = request.
-
+    body = json.loads(request.body.decode())
     # prepare response for a valid message
     res = Response()
-    res.set_status("200","OK")
     res.text("message sent")
+    res.cookies(request.cookies)
+    message = {}
+    message["content"] = body["content"]
+    if "session" in request.cookies:
+        message["session"] = request.cookies["session"]
+        # session cookie should already have been set in response by this conditional
+    else:
+        session = str(uuid.uuid4())
+        message["session"] = session
+    # set updated or not
+    message["updated"] = False
+    database.chat_collection.insert_one(message)
+    
     handler.request.sendall(res.to_data())
 
 def get_chat(request, handler):
     res = Response()
+    chats = list(database.chat_collection.find({}))
+    res.json({"messages":chats})
+    handler.request.sendall(res.to_data())
+
+
 
 def patch_chat(request, handler):
     pass
