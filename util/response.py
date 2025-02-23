@@ -43,7 +43,6 @@ class Response:
 
     def bytes(self, data):
         self.body = self.body + data
-        self.headers({"Content-Length":str(len(self.body))})
         return self
         pass
 
@@ -55,12 +54,11 @@ class Response:
     def json(self, data):
         self.headers({"Content-Type":"application/json"})
         self.body = json.dumps(data).encode()
-        self.headers({"Content-Length":str(len(self.body))})
         return self
         pass
 
     def to_data(self):
-        self.headers({"X-Content-Type-Options":"nosniff"})
+        self.headers({"X-Content-Type-Options":"nosniff", "Content-Length":str(len(self.body))})
         if ("Content-Type" not in self.headers_dict):
             self.headers({"Content-Type":"text/plain; charset=utf-8"})
         ret = "HTTP/1.1 " + self.status_code + " " + self.status_msg + "\r\n"

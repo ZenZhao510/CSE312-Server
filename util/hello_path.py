@@ -1,5 +1,6 @@
 from util.response import Response
 import os
+from pymongo import MongoClient
 
 # This path is provided as an example of how to use the router
 def hello_path(request, handler):
@@ -16,6 +17,7 @@ def public_path(request, handler):
     path_array = filepath.split('.')
     ext = path_array[1]
     # check if filepath exists before opening
+    # Tina confirmed os is allowed for this
     if os.path.exists(filepath):
         print(filepath)
         with open(filepath, 'rb') as file:
@@ -66,6 +68,10 @@ def chat_path(request, handler):
     handler.request.sendall(res.to_data())
 
 def post_chat(request, handler):
+    # parse incoming request json
+    body = request.
+
+    # prepare response for a valid message
     res = Response()
     res.set_status("200","OK")
     res.text("message sent")
