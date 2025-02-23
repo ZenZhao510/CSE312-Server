@@ -71,6 +71,10 @@ def chat_path(request, handler):
 def post_chat(request, handler):
     # parse incoming request json
     body = json.loads(request.body.decode())
+    # escape html
+    body["content"].replace("&","&amp;")
+    body["content"].replace("<","&lt;")
+    body["content"].replace(">","&gt;")
     # prepare response for a valid message
     res = Response()
     message = {}
@@ -106,6 +110,9 @@ def get_chat(request, handler):
 def patch_chat(request, handler):
     res = Response()
     body = json.loads(request.body.decode())
+    body["content"].replace("&","&amp;")
+    body["content"].replace("<","&lt;")
+    body["content"].replace(">","&gt;")
     id = request.path.split("/api/chats/")[1]
     if "session" not in request.cookies or util.database.chat_collection.find_one({"id":id})["author"] != request.cookies["session"]:
         res.set_status("403","Forbidden")
