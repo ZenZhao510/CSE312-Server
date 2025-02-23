@@ -71,7 +71,6 @@ def chat_path(request, handler):
 def post_chat(request, handler):
     # parse incoming request json
     body = json.loads(request.body.decode())
-    # escape html
     body["content"].replace("&","&amp;")
     body["content"].replace("<","&lt;")
     body["content"].replace(">","&gt;")
@@ -104,7 +103,12 @@ def get_chat(request, handler):
     # grab every chat and simply stuff them into a list
     chats = list(util.database.chat_collection.find({}))
     # print(chats)
+    for chat in chats:
+        chat["content"] = chat["content"].replace("&","&amp;")
+        chat["content"] = chat["content"].replace("<","&lt;")
+        chat["content"] = chat["content"].replace(">","&gt;")
     res.json({"messages":chats})
+    print(res.to_data())
     handler.request.sendall(res.to_data())
 
 def patch_chat(request, handler):
