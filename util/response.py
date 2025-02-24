@@ -58,6 +58,7 @@ class Response:
 
     def json(self, data):
         self.headers({"Content-Type":"application/json"})
+        
         self.body = json.dumps(data, default=str).encode()
         return self
         pass

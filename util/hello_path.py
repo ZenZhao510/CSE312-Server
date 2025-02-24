@@ -119,6 +119,9 @@ def search_users_path(request, handler):
 def post_chat(request, handler):
     # parse incoming request json
     body = json.loads(request.body.decode())
+    body["content"].replace("&","&amp;")
+    body["content"].replace("<","&lt;")
+    body["content"].replace(">","&gt;")
     # prepare response for a valid message
     res = Response()
     message = {}
@@ -148,21 +151,37 @@ def get_chat(request, handler):
     # grab every chat and simply stuff them into a list
     chats = list(util.database.chat_collection.find({}))
     # print(chats)
+    for chat in chats:
+        chat["content"] = chat["content"].replace("&","&amp;")
+        chat["content"] = chat["content"].replace("<","&lt;")
+        chat["content"] = chat["content"].replace(">","&gt;")
     res.json({"messages":chats})
+    print(res.to_data())
     handler.request.sendall(res.to_data())
 
 def patch_chat(request, handler):
     res = Response()
     body = json.loads(request.body.decode())
+    body["content"].replace("&","&amp;")
+    body["content"].replace("<","&lt;")
+    body["content"].replace(">","&gt;")
     id = request.path.split("/api/chats/")[1]
-    if "author" not in request.cookies or util.database.chat_collection.find_one({"id":id})["author"] != request.cookies["author"]:
+    if "session" not in request.cookies or util.database.chat_collection.find_one({"id":id})["author"] != request.cookies["session"]:
         res.set_status("403","Forbidden")
         res.text("User lacks permission to update this message.")
     else:
-        util.database.chat_collection.update_one({"id":id},{"$set":{"content":body["content"]}})
+        util.database.chat_collection.update_one({"id":id},{"$set":{"content":body["content"],"updated":True}})
         res.text("Message updated.")
     handler.request.sendall(res.to_data())
 
 def delete_chat(request, handler):
-    pass
+    res = Response()
+    id = request.path.split("/api/chats/")[1]
+    if "session" not in request.cookies or util.database.chat_collection.find_one({"id":id})["author"] != request.cookies["session"]:
+        res.set_status("403","Forbidden")
+        res.text("User lacks permission to delete this message.")
+    else:
+        util.database.chat_collection.delete_one({"id":id})
+        res.text("Message deleted.")
+    handler.request.sendall(res.to_data())
 
