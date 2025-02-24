@@ -68,6 +68,54 @@ def chat_path(request, handler):
     res.headers({"Content-Type":"text/html"})
     handler.request.sendall(res.to_data())
 
+def register_path(request, handler):
+    res = Response()
+    layout = ""
+    replace = ""
+    with open("public/layout/layout.html", 'r', encoding = 'utf-8') as file:
+        layout = file.read()
+    with open ("public/chat.html", 'r', encoding = 'utf-8') as file:
+        replace = file.read()
+    res.text(layout.replace("{{content}}", replace))
+    res.headers({"Content-Type":"text/html"})
+    handler.request.sendall(res.to_data())
+
+def login_path(request, handler):
+    res = Response()
+    layout = ""
+    replace = ""
+    with open("public/layout/layout.html", 'r', encoding = 'utf-8') as file:
+        layout = file.read()
+    with open ("public/chat.html", 'r', encoding = 'utf-8') as file:
+        replace = file.read()
+    res.text(layout.replace("{{content}}", replace))
+    res.headers({"Content-Type":"text/html"})
+    handler.request.sendall(res.to_data())
+
+def settings_path(request, handler):
+    res = Response()
+    layout = ""
+    replace = ""
+    with open("public/layout/layout.html", 'r', encoding = 'utf-8') as file:
+        layout = file.read()
+    with open ("public/chat.html", 'r', encoding = 'utf-8') as file:
+        replace = file.read()
+    res.text(layout.replace("{{content}}", replace))
+    res.headers({"Content-Type":"text/html"})
+    handler.request.sendall(res.to_data())
+
+def search_users_path(request, handler):
+    res = Response()
+    layout = ""
+    replace = ""
+    with open("public/layout/layout.html", 'r', encoding = 'utf-8') as file:
+        layout = file.read()
+    with open ("public/search-users.html", 'r', encoding = 'utf-8') as file:
+        replace = file.read()
+    res.text(layout.replace("{{content}}", replace))
+    res.headers({"Content-Type":"text/html"})
+    handler.request.sendall(res.to_data())
+
 def post_chat(request, handler):
     # parse incoming request json
     body = json.loads(request.body.decode())
