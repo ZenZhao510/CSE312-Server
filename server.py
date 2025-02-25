@@ -5,6 +5,11 @@ from util.hello_path import hello_path
 from util.hello_path import public_path
 from util.hello_path import index_path
 from util.hello_path import chat_path
+from util.hello_path import register_path
+from util.hello_path import login_path
+from util.hello_path import settings_path
+from util.hello_path import search_users_path
+
 from util.hello_path import post_chat
 from util.hello_path import get_chat
 from util.hello_path import patch_chat
@@ -18,6 +23,10 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
         self.router.add_route("GET", "/public", public_path)
         self.router.add_route("GET", "/", index_path, True)
         self.router.add_route("GET", "/chat", chat_path, True)
+        self.router.add_route("GET", "/register", register_path, True)
+        self.router.add_route("GET", "/login", login_path, True)
+        self.router.add_route("GET", "/settings", settings_path, True)
+        self.router.add_route("GET", "/search-users", search_users_path, True)
         self.router.add_route("POST", "/api/chats", post_chat, True)
         self.router.add_route("GET", "/api/chats", get_chat, True)
         self.router.add_route("PATCH", "/api/chats", patch_chat)
@@ -39,7 +48,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 def main():
     host = "0.0.0.0"
     # make sure to change back to 8080 for submissions
-    port = 8080
+    port = 8090
     socketserver.TCPServer.allow_reuse_address = True
 
     server = socketserver.TCPServer((host, port), MyTCPHandler)

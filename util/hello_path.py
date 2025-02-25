@@ -74,7 +74,7 @@ def register_path(request, handler):
     replace = ""
     with open("public/layout/layout.html", 'r', encoding = 'utf-8') as file:
         layout = file.read()
-    with open ("public/chat.html", 'r', encoding = 'utf-8') as file:
+    with open ("public/register.html", 'r', encoding = 'utf-8') as file:
         replace = file.read()
     res.text(layout.replace("{{content}}", replace))
     res.headers({"Content-Type":"text/html"})
@@ -86,7 +86,7 @@ def login_path(request, handler):
     replace = ""
     with open("public/layout/layout.html", 'r', encoding = 'utf-8') as file:
         layout = file.read()
-    with open ("public/chat.html", 'r', encoding = 'utf-8') as file:
+    with open ("public/login.html", 'r', encoding = 'utf-8') as file:
         replace = file.read()
     res.text(layout.replace("{{content}}", replace))
     res.headers({"Content-Type":"text/html"})
@@ -98,7 +98,7 @@ def settings_path(request, handler):
     replace = ""
     with open("public/layout/layout.html", 'r', encoding = 'utf-8') as file:
         layout = file.read()
-    with open ("public/chat.html", 'r', encoding = 'utf-8') as file:
+    with open ("public/settings.html", 'r', encoding = 'utf-8') as file:
         replace = file.read()
     res.text(layout.replace("{{content}}", replace))
     res.headers({"Content-Type":"text/html"})
