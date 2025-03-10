@@ -120,6 +120,12 @@ def search_users_path(request, handler):
     handler.request.sendall(res.to_data())
 
 def post_chat(request, handler):
+    if "auth_token" in request.cookies:
+        auth_chat(request, handler)
+    else:
+        guest_chat(request, handler)
+
+def guest_chat(request, handler):
     # parse incoming request json
     body = json.loads(request.body.decode())
     body["content"].replace("&","&amp;")
@@ -130,38 +136,58 @@ def post_chat(request, handler):
     res = Response()
     message = {}
     message["content"] = body["content"]
-
-    if "auth_token" in request.cookies:
-
-        hashed_auth = hashlib.sha256(request.cookies["auth_token"].encode()).hexdigest()
-
-        # this accounts for auth_token removed on logout or if somehow there's an auth_token but no user in db with that token
-
-        # somewhere in here or logout the auth_token breaks, because 
-        if util.database.user_collection.find_one({"auth-token":hashed_auth}) != None:
-            message["author"] = util.database.user_collection.find_one({"auth-token":hashed_auth})["username"]
-        
+    if "session" in request.cookies:
+        # print("Guest already has cookie: "+request.cookies["session"])
+        message["author"] = request.cookies["session"]
     else:
-        if "session" in request.cookies:
-            message["author"] = request.cookies["session"]
-            # session cookie should be set later by the cookies method
-        else:
-            session = str(uuid.uuid4())
-            message["author"] = session
-            session = str(uuid.uuid4()) + "; Path=/"
-            # print("New cookie: "+ session)
-            res.cookies({"session":session})
-    # should there be a separate "id" asides from "_id"?
+        session = str(uuid.uuid4())
+        # print("Guest generated new cookie: "+session)
+        message["author"] = session
+        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+        # i for some reason generated another session cookie which meant everything after has something different FUUUUUUUUUUUUCK
+        session = session + "; Path=/"
+        res.cookies({"session":session})
     message["id"] = str(uuid.uuid4())
     message["content"] = body["content"]
     # set updated to False
     message["updated"] = False
     # print(message)
     util.database.chat_collection.insert_one(message)
-    
+
     res.text("message sent")
-    res.cookies(request.cookies)
+    # in retrospect this probably led to the doubled up cookies
+    # res.cookies(request.cookies)
     # print(res.to_data())
+    send = res.to_data()
+    print(send)
+    handler.request.sendall(send)
+
+def auth_chat(request, handler):
+    body = json.loads(request.body.decode())
+    body["content"].replace("&","&amp;")
+    body["content"].replace("<","&lt;")
+    body["content"].replace(">","&gt;")
+
+    res = Response()
+    message = {}
+    message["content"] = body["content"]
+
+    hashed_auth = hashlib.sha256(request.cookies["auth_token"].encode()).hexdigest()
+    # this accounts for auth_token removed on logout or if somehow there's an auth_token but no user in db with that token
+    # somewhere in here or logout the auth_token breaks, because 
+    if util.database.user_collection.find_one({"auth-token":hashed_auth}) != None:
+        message["author"] = util.database.user_collection.find_one({"auth-token":hashed_auth})["username"]
+    
+    # do we also need to set a session token? probably not? this might actually be why logout breaks but autolab doesn't detect it
+    
+    # prepare message for insertion into DB
+    message["id"] = str(uuid.uuid4())
+    message["content"] = body["content"]
+    # set updated to False
+    message["updated"] = False
+    util.database.chat_collection.insert_one(message)
+
+    res.text("message sent")
     send = res.to_data()
     # print(send)
     handler.request.sendall(send)
