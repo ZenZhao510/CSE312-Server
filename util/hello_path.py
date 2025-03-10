@@ -3,6 +3,7 @@ import os
 import json
 import uuid
 import bcrypt
+import hashlib
 import util.database
 from util.auth import extract_credentials, validate_password
 
@@ -202,7 +203,7 @@ def register(request, handler):
         handler.request.sendall(res.to_data())
     else:
         salt = bcrypt.gensalt()
-        user = {"uid":str(uuid.uuid4()), "username":credentials[0], "password":bcrypt.hashpw(credentials[1], salt), "salt":salt}
+        user = {"uid":str(uuid.uuid4()), "username":credentials[0], "password":bcrypt.hashpw(credentials[1].encode(), salt), "salt":salt}
         util.database.user_collection.insert_one(user)
     res.json(credentials)
 
@@ -224,7 +225,7 @@ def login(request, handler):
         salt = util.database.user_collection.find_one({"username":credentials[0]})["salt"]
 
         # compare password salt has
-        if (bcrypt.hashpw(credentials[1], salt) != util.database.user_collection.find_one({"username":credentials[0]})["password"]):
+        if (bcrypt.hashpw(credentials[1].encode(), salt) != util.database.user_collection.find_one({"username":credentials[0]})["password"]):
             res.set_status("400","Invalid Login")
             res.text("Incorrect Password")
             handler.request.sendall(res.to_data())
@@ -234,6 +235,6 @@ def login(request, handler):
     auth_token = str(uuid.uuid4())
     res.headers({"auth_token":auth_token+"; HttpOnly; Max-Age=3600"})
     # store auth_token hashed in db without a salt
-    util.database.chat_collection.update_one({"username":credentials[0]},{"$set":{"auth-token":bcrypt.hashpw(auth_token)}})
+    util.database.chat_collection.update_one({"username":credentials[0]},{"$set":{"auth-token":hashlib.sha256(auth_token.encode()).hexdigest()}})
     handler.request.sendall(res.to_data())
 
