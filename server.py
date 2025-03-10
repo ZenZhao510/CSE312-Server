@@ -17,6 +17,7 @@ from util.hello_path import delete_chat
 
 from util.hello_path import register
 from util.hello_path import login
+from util.hello_path import logout
 
 class MyTCPHandler(socketserver.BaseRequestHandler):
 
@@ -42,6 +43,8 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
         self.router.add_route("POST", "/register", register, True)
         # login routes
         self.router.add_route("POST", "/login", login, True)
+        # logout routes
+        self.router.add_route("GET", "/logout", logout, True)
         # TODO: Add your routes here
         super().__init__(request, client_address, server)
 

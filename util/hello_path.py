@@ -133,7 +133,7 @@ def post_chat(request, handler):
         message["author"] = request.cookies["session"]
         # session cookie should be set later by the cookies method
     else:
-        session = str(uuid.uuid4())
+        session = str(uuid.uuid4()) + "; Path=/"
         message["author"] = session
         res.cookies({"session":session})
     # should there be a separate "id" asides from "_id"?
@@ -219,7 +219,7 @@ def login(request, handler):
     if (not user_exists):
         # make sure to have this status message be the same for pw and user at submission (no hints for attackers)
         res.set_status("400","Invalid Login")
-        res.text("Incorrect Username")
+        res.text("Incorrect Username or Password")
         handler.request.sendall(res.to_data())
     else:
         salt = util.database.user_collection.find_one({"username":credentials[0]})["salt"]
@@ -227,7 +227,7 @@ def login(request, handler):
         # compare password salt has
         if (bcrypt.hashpw(credentials[1].encode(), salt) != util.database.user_collection.find_one({"username":credentials[0]})["password"]):
             res.set_status("400","Invalid Login")
-            res.text("Incorrect Password")
+            res.text("Incorrect Username or Password")
             handler.request.sendall(res.to_data())
     res.json(credentials)
 
@@ -238,3 +238,15 @@ def login(request, handler):
     util.database.chat_collection.update_one({"username":credentials[0]},{"$set":{"auth-token":hashlib.sha256(auth_token.encode()).hexdigest()}})
     handler.request.sendall(res.to_data())
 
+def logout(request, handler):
+    res = Response()
+    # how are we supposed to find the user if there's no cookies in GET logout with the auth token or session cookies or anything
+    # or do we not even have to update the database
+    # auth_token = request.cookies["auth_token"]
+    # overwrite old auth_token with dummy token of Max-Age 0
+    new_token = str(uuid.uuid4())
+    # util.database.chat_collection.update_one({"auth_token":auth_token},{"$set":{"auth-token":hashlib.sha256(new_token.encode()).hexdigest()}})
+    res.headers({"auth_token":new_token+"; HttpOnly; Max-Age=0"})
+    res.set_status("302", "Found")
+    res.headers({"Location":"Something idk"})
+    handler.request.sendall(res.to_data())
