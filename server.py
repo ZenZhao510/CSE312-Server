@@ -15,10 +15,13 @@ from util.hello_path import get_chat
 from util.hello_path import patch_chat
 from util.hello_path import delete_chat
 
+from util.hello_path import register
+
 class MyTCPHandler(socketserver.BaseRequestHandler):
 
     def __init__(self, request, client_address, server):
         self.router = Router()
+        # static files
         self.router.add_route("GET", "/hello", hello_path, True)
         self.router.add_route("GET", "/public", public_path)
         self.router.add_route("GET", "/", index_path, True)
@@ -27,10 +30,15 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
         self.router.add_route("GET", "/login", login_path, True)
         self.router.add_route("GET", "/settings", settings_path, True)
         self.router.add_route("GET", "/search-users", search_users_path, True)
+
+        # chat routes
         self.router.add_route("POST", "/api/chats", post_chat, True)
         self.router.add_route("GET", "/api/chats", get_chat, True)
         self.router.add_route("PATCH", "/api/chats", patch_chat)
         self.router.add_route("DELETE", "/api/chats", delete_chat)
+
+        # register routes
+        self.router.add_route("POST", "/register", register, True)
         # TODO: Add your routes here
         super().__init__(request, client_address, server)
 
@@ -48,7 +56,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 def main():
     host = "0.0.0.0"
     # make sure to change back to 8080 for submissions
-    port = 8090
+    port = 8080
     socketserver.TCPServer.allow_reuse_address = True
 
     server = socketserver.TCPServer((host, port), MyTCPHandler)

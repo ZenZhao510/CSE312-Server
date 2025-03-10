@@ -2,7 +2,9 @@ from util.response import Response
 import os
 import json
 import uuid
+import bcrypt
 import util.database
+from util.auth import extract_credentials, validate_password
 
 # This path is provided as an example of how to use the router
 def hello_path(request, handler):
@@ -183,5 +185,55 @@ def delete_chat(request, handler):
     else:
         util.database.chat_collection.delete_one({"id":id})
         res.text("Message deleted.")
+    handler.request.sendall(res.to_data())
+
+def register(request, handler):
+    res = Response()
+    credentials = extract_credentials(request)
+    valid_pwd = validate_password(credentials[1])
+    if (not valid_pwd):
+        res.set_status("400","Invalid Registration")
+        res.text("Password needs to be at least 8 characters long, have at least one lowercase character, have at least one uppercase character, and a special character")
+        handler.request.sendall(res.to_data())
+    # if user exists
+    if (util.database.user_collection.find_one({"username":credentials[0]}) != None):
+        res.set_status("400","Invalid Registration")
+        res.text("Username already exists")
+        handler.request.sendall(res.to_data())
+    else:
+        salt = bcrypt.gensalt()
+        user = {"uid":str(uuid.uuid4()), "username":credentials[0], "password":bcrypt.hashpw(credentials[1], salt), "salt":salt}
+        util.database.user_collection.insert_one(user)
+    res.json(credentials)
+
+    handler.request.sendall(res.to_data())
+
+def login(request, handler):
+    res = Response()
+    credentials = extract_credentials(request)
+    # see if user exists
+    user_exists = False;
+    if (util.database.user_collection.find_one({"username":credentials[0]}) != None):
+        user_exists = True;
+    if (not user_exists):
+        # make sure to have this status message be the same for pw and user at submission (no hints for attackers)
+        res.set_status("400","Invalid Login")
+        res.text("Incorrect Username")
+        handler.request.sendall(res.to_data())
+    else:
+        salt = util.database.user_collection.find_one({"username":credentials[0]})["salt"]
+
+        # compare password salt has
+        if (bcrypt.hashpw(credentials[1], salt) != util.database.user_collection.find_one({"username":credentials[0]})["password"]):
+            res.set_status("400","Invalid Login")
+            res.text("Incorrect Password")
+            handler.request.sendall(res.to_data())
+    res.json(credentials)
+
+    # set auth_token with HttpOnly directive that expires in an hour
+    auth_token = str(uuid.uuid4())
+    res.headers({"auth_token":auth_token+"; HttpOnly; Max-Age=3600"})
+    # store auth_token hashed in db without a salt
+    util.database.chat_collection.update_one({"username":credentials[0]},{"$set":{"auth-token":bcrypt.hashpw(auth_token)}})
     handler.request.sendall(res.to_data())
 
