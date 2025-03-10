@@ -20,6 +20,7 @@ from util.hello_path import login
 from util.hello_path import logout
 from util.hello_path import atme
 from util.hello_path import update
+from util.hello_path import search
 
 class MyTCPHandler(socketserver.BaseRequestHandler):
 
@@ -50,9 +51,9 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
         # @me routes
         self.router.add_route("GET", "/api/users/@me", atme, True)
         # search routes
-
+        self.router.add_route("GET", "/api/users/search", search)
         # update routes
-        self.router.add_route("POST", "/api/users/update", update, True)
+        self.router.add_route("POST", "/api/users/settings", update, True)
         # TODO: Add your routes here
         super().__init__(request, client_address, server)
 

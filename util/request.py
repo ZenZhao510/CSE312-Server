@@ -12,39 +12,41 @@ class Request:
         if len(data) > 0:
             # decode method_path_http and headers
             not_body = data[0].decode().split('\r\n')
+            # print(not_body)
             num_headers = len(not_body) - 1
             # for line in lines:
                 # print("Line: " + line)
-            method_path_http = not_body[0].split()
-            # print("Request: " + data)
-            # have to figure out how to parse bytes
-            # GET POST etc
-            # print(method_path_http)
-            self.method = method_path_http[0]
-            # Path Requested
-            self.path = method_path_http[1]
-            # HTTP ver
-            self.http_version = method_path_http[2]
-            # Host
-            self.headers = {}
-            i:int = 0
-            while i < num_headers:
-                header = not_body[i+1].split(':',1)
-                self.headers[header[0].strip()] = header[1].strip()
-                # print(lines[i])
-                i+=1
-            # for header in self.headers:
-                # print("Header: "+header+"; Value: "+self.headers[header])
-            # Multiple values separated by semicolons
-            # All under 'Cookie' header
-            self.cookies = {}
-            if "Cookie" in self.headers:
-                cookieslist = self.headers["Cookie"].split(';')
-                for cookie in cookieslist:
-                    # print(cookie)
-                    cookeyval = cookie.split('=')
-                    # print(cookeyval)
-                    self.cookies[cookeyval[0].strip()] = cookeyval[1].strip()
+            if len(not_body) > 1:
+                method_path_http = not_body[0].split()
+                # print("Request: " + data)
+                # have to figure out how to parse bytes
+                # GET POST etc
+                # print(method_path_http)
+                self.method = method_path_http[0]
+                # Path Requested
+                self.path = method_path_http[1]
+                # HTTP ver
+                self.http_version = method_path_http[2]
+                # Host
+                self.headers = {}
+                i:int = 0
+                while i < num_headers:
+                    header = not_body[i+1].split(':',1)
+                    self.headers[header[0].strip()] = header[1].strip()
+                    # print(lines[i])
+                    i+=1
+                # for header in self.headers:
+                    # print("Header: "+header+"; Value: "+self.headers[header])
+                # Multiple values separated by semicolons
+                # All under 'Cookie' header
+                self.cookies = {}
+                if "Cookie" in self.headers:
+                    cookieslist = self.headers["Cookie"].split(';')
+                    for cookie in cookieslist:
+                        # print(cookie)
+                        cookeyval = cookie.split('=')
+                        # print(cookeyval)
+                        self.cookies[cookeyval[0].strip()] = cookeyval[1].strip()
 
 
 def test1():

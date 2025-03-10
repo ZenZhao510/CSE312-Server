@@ -294,16 +294,16 @@ def logout(request, handler):
     if "auth_token" in request.cookies:
         hash_auth = hashlib.sha256(request.cookies["auth_token"].encode()).hexdigest()
         new_hash = hashlib.sha256(new_token.encode()).hexdigest()
-        print(util.database.user_collection.find_one({"auth-token":hash_auth}))
+        # print(util.database.user_collection.find_one({"auth-token":hash_auth}))
         util.database.chat_collection.update_one({"auth-token":hash_auth},{"$set":{"auth-token":new_hash}})
-        print(util.database.user_collection.find_one({"auth-token":new_hash})) 
-        print("old auth invalidated")
+        # print(util.database.user_collection.find_one({"auth-token":new_hash})) 
+        # print("old auth invalidated")
         res.text("old auth invalidated")
     res.cookies({"auth_token":request.cookies["auth_token"]+"; HttpOnly; Max-Age=0; Path=/"})
     # res.set_status("302", "Found")
     # res.headers({"Location":"Something idk"})
     send = res.to_data()
-    print(send)
+    # print(send)
     handler.request.sendall(send)
 
 def atme(request, handler):
@@ -314,32 +314,57 @@ def atme(request, handler):
     else:
         auth_token = request.cookies["auth_token"]
         ret = {}
-        print(util.database.user_collection.find_one({"auth-token":hashlib.sha256(auth_token.encode()).hexdigest()})) 
+        # print(util.database.user_collection.find_one({"auth-token":hashlib.sha256(auth_token.encode()).hexdigest()})) 
         ret["username"] = util.database.user_collection.find_one({"auth-token":hashlib.sha256(auth_token.encode()).hexdigest()})["username"]
         ret["id"] = util.database.user_collection.find_one({"auth-token":hashlib.sha256(request.cookies["auth_token"].encode()).hexdigest()})["uid"]
         res.json(ret)
     handler.request.sendall(res.to_data())
 
+def search(request, handler):
+    res = Response()
+
+    # parse query
+    search_term = request.path.split('=',1)[1]
+    ret = {"users":[]}
+    if search_term != "":
+        # get all users
+        users = list(util.database.user_collection.find())
+        for user in users:
+            if search_term in user["username"]:
+                ret["users"].append({"id":user["uid"], "username":user["username"]})
+    res.json(ret)
+    handler.request.sendall(res.to_data())
+
 def update(request, handler):
     res = Response()
     credentials = extract_credentials(request)
+    # print(credentials)
     auth_token = request.cookies["auth_token"]
+    # print(auth_token)
     hashed_auth = hashlib.sha256(auth_token.encode()).hexdigest()
     username = credentials[0]
+    # print(username)
     password = credentials[1]
+    # print(password)
+    # print(util.database.user_collection.find_one({"auth-token":hashed_auth}))
     if password == "":
         # only change username
+        # print("Password Blank")
         util.database.user_collection.update_one({"auth-user":hashed_auth},{"$set":{"username":username}})
-        res.status_code("200", "Updated OK")
-        handler.request.sendall(res.to_data())
+        res.set_status("200", "Updated OK")
     else:
-        if not validate_password(password):
+        if validate_password(password) != True:
+            # print("Password Invalid")
             res.set_status("400", "Password Invalid")
         else:
             util.database.user_collection.update_one({"auth-user":hashed_auth},{"$set":{"username":username}})
             salt = util.database.user_collection.find_one({"auth-token":hashed_auth})["salt"]
             new_hash = bcrypt.hashpw(password.encode(),salt)
-            util.database.user_collection.update_one({"auth-user":hashed_auth},{"$set":{"password":username}})
+            # print(new_hash)
+            util.database.user_collection.update_one({"auth-user":hashed_auth},{"$set":{"password":new_hash}})
+            res.set_status("200", "Username and Password Updated")
+            # print(util.database.user_collection.find_one({"auth-token":hashed_auth}))
+    handler.request.sendall(res.to_data())
 
 # if __name__ == '__main__':
     # database.chat_collection.drop()
