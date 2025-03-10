@@ -125,17 +125,32 @@ def post_chat(request, handler):
     body["content"].replace("&","&amp;")
     body["content"].replace("<","&lt;")
     body["content"].replace(">","&gt;")
+
     # prepare response for a valid message
     res = Response()
     message = {}
     message["content"] = body["content"]
-    if "session" in request.cookies:
-        message["author"] = request.cookies["session"]
-        # session cookie should be set later by the cookies method
+
+    if "auth_token" in request.cookies:
+
+        hashed_auth = hashlib.sha256(request.cookies["auth_token"].encode()).hexdigest()
+
+        # this accounts for auth_token removed on logout or if somehow there's an auth_token but no user in db with that token
+
+        # somewhere in here or logout the auth_token breaks, because 
+        if util.database.user_collection.find_one({"auth-token":hashed_auth}) != None:
+            message["author"] = util.database.user_collection.find_one({"auth-token":hashed_auth})["username"]
+        
     else:
-        session = str(uuid.uuid4()) + "; Path=/"
-        message["author"] = session
-        res.cookies({"session":session})
+        if "session" in request.cookies:
+            message["author"] = request.cookies["session"]
+            # session cookie should be set later by the cookies method
+        else:
+            session = str(uuid.uuid4())
+            message["author"] = session
+            session = str(uuid.uuid4()) + "; Path=/"
+            # print("New cookie: "+ session)
+            res.cookies({"session":session})
     # should there be a separate "id" asides from "_id"?
     message["id"] = str(uuid.uuid4())
     message["content"] = body["content"]
@@ -147,7 +162,9 @@ def post_chat(request, handler):
     res.text("message sent")
     res.cookies(request.cookies)
     # print(res.to_data())
-    handler.request.sendall(res.to_data())
+    send = res.to_data()
+    # print(send)
+    handler.request.sendall(send)
 
 def get_chat(request, handler):
     res = Response()
@@ -159,7 +176,7 @@ def get_chat(request, handler):
         chat["content"] = chat["content"].replace("<","&lt;")
         chat["content"] = chat["content"].replace(">","&gt;")
     res.json({"messages":chats})
-    print(res.to_data())
+    # print(res.to_data())
     handler.request.sendall(res.to_data())
 
 def patch_chat(request, handler):
@@ -169,23 +186,43 @@ def patch_chat(request, handler):
     body["content"].replace("<","&lt;")
     body["content"].replace(">","&gt;")
     id = request.path.split("/api/chats/")[1]
-    if "session" not in request.cookies or util.database.chat_collection.find_one({"id":id})["author"] != request.cookies["session"]:
-        res.set_status("403","Forbidden")
-        res.text("User lacks permission to update this message.")
+    # if auth_token exists (i.e. user logged in)
+    if "auth_token" in request.cookies:
+        if util.database.chat_collection.find_one({"id":id})["author"] != util.database.user_collection.find_one({"auth-token":hashlib.sha256(request.cookies["auth_token"].encode()).hexdigest()})["username"]:
+            res.set_status("403","Forbidden")
+            res.text("User lacks permission to update this message. (User)")
+        else:
+            util.database.chat_collection.update_one({"id":id},{"$set":{"content":body["content"],"updated":True}})
+            res.text("Message updated.")
     else:
-        util.database.chat_collection.update_one({"id":id},{"$set":{"content":body["content"],"updated":True}})
-        res.text("Message updated.")
+        # otherwise base off session?
+        # currently as session cookies are not cleared, the logged out user would still be able to communicate as the logged in user apparently
+        # weird
+        if "session" not in request.cookies or util.database.chat_collection.find_one({"id":id})["author"] != request.cookies["session"]:
+            res.set_status("403","Forbidden")
+            res.text("User lacks permission to update this message. (Guest)")
+        else:
+            util.database.chat_collection.update_one({"id":id},{"$set":{"content":body["content"],"updated":True}})
+            res.text("Message updated.")
     handler.request.sendall(res.to_data())
 
 def delete_chat(request, handler):
     res = Response()
     id = request.path.split("/api/chats/")[1]
-    if "session" not in request.cookies or util.database.chat_collection.find_one({"id":id})["author"] != request.cookies["session"]:
-        res.set_status("403","Forbidden")
-        res.text("User lacks permission to delete this message.")
-    else:
-        util.database.chat_collection.delete_one({"id":id})
+    if "auth_token" in request.cookies:
+        if util.database.chat_collection.find_one({"id":id})["author"] != util.database.user_collection.find_one({"auth-token":hashlib.sha256(request.cookies["auth_token"].encode()).hexdigest()})["username"]:
+            res.set_status("403","Forbidden")
+            res.text("User lacks permission to delete this message. (User)")
+        else:
+            util.database.chat_collection.delete_one({"id":id})
         res.text("Message deleted.")
+    else:
+        if "session" not in request.cookies or util.database.chat_collection.find_one({"id":id})["author"] != request.cookies["session"]:
+            res.set_status("403","Forbidden")
+            res.text("User lacks permission to delete this message. (Guest)")
+        else:
+            util.database.chat_collection.delete_one({"id":id})
+            res.text("Message deleted.")
     handler.request.sendall(res.to_data())
 
 def register(request, handler):
@@ -205,6 +242,7 @@ def register(request, handler):
         salt = bcrypt.gensalt()
         user = {"uid":str(uuid.uuid4()), "username":credentials[0], "password":bcrypt.hashpw(credentials[1].encode(), salt), "salt":salt}
         util.database.user_collection.insert_one(user)
+        # print(util.database.user_collection.find_one({"username":credentials[0]}))
     res.json(credentials)
 
     handler.request.sendall(res.to_data())
@@ -230,23 +268,79 @@ def login(request, handler):
             res.text("Incorrect Username or Password")
             handler.request.sendall(res.to_data())
     res.json(credentials)
-
+    # read if session cookie exists
+    cookies = request.cookies
+    if "session" in cookies:
+        # update all messages with that cookie as author retroactively
+        util.database.chat_collection.update_many({"author":cookies["session"]},{"$set":{"author":credentials[0]}})
     # set auth_token with HttpOnly directive that expires in an hour
     auth_token = str(uuid.uuid4())
-    res.headers({"auth_token":auth_token+"; HttpOnly; Max-Age=3600"})
+    res.cookies({"auth_token":auth_token+"; HttpOnly; Max-Age=3600; Path=/"})
+    # print(util.database.user_collection.find_one({"username":credentials[0]}))
     # store auth_token hashed in db without a salt
-    util.database.chat_collection.update_one({"username":credentials[0]},{"$set":{"auth-token":hashlib.sha256(auth_token.encode()).hexdigest()}})
-    handler.request.sendall(res.to_data())
+    util.database.user_collection.update_one({"username":credentials[0]},{"$set":{"auth-token":hashlib.sha256(auth_token.encode()).hexdigest()}})
+    
+    send = res.to_data()
+    handler.request.sendall(send)
 
 def logout(request, handler):
     res = Response()
     # how are we supposed to find the user if there's no cookies in GET logout with the auth token or session cookies or anything
+    # nvm i am a dumbass
     # or do we not even have to update the database
     # auth_token = request.cookies["auth_token"]
     # overwrite old auth_token with dummy token of Max-Age 0
-    new_token = str(uuid.uuid4())
-    # util.database.chat_collection.update_one({"auth_token":auth_token},{"$set":{"auth-token":hashlib.sha256(new_token.encode()).hexdigest()}})
-    res.headers({"auth_token":new_token+"; HttpOnly; Max-Age=0"})
-    res.set_status("302", "Found")
-    res.headers({"Location":"Something idk"})
+    new_token = '0'
+    if "auth_token" in request.cookies:
+        hash_auth = hashlib.sha256(request.cookies["auth_token"].encode()).hexdigest()
+        new_hash = hashlib.sha256(new_token.encode()).hexdigest()
+        print(util.database.user_collection.find_one({"auth-token":hash_auth}))
+        util.database.chat_collection.update_one({"auth-token":hash_auth},{"$set":{"auth-token":new_hash}})
+        print(util.database.user_collection.find_one({"auth-token":new_hash})) 
+        print("old auth invalidated")
+        res.text("old auth invalidated")
+    res.cookies({"auth_token":request.cookies["auth_token"]+"; HttpOnly; Max-Age=0; Path=/"})
+    # res.set_status("302", "Found")
+    # res.headers({"Location":"Something idk"})
+    send = res.to_data()
+    print(send)
+    handler.request.sendall(send)
+
+def atme(request, handler):
+    res = Response()
+    if "auth_token" not in request.cookies:
+        res.set_status("401", "No Auth Token")
+        res.json({})
+    else:
+        auth_token = request.cookies["auth_token"]
+        ret = {}
+        print(util.database.user_collection.find_one({"auth-token":hashlib.sha256(auth_token.encode()).hexdigest()})) 
+        ret["username"] = util.database.user_collection.find_one({"auth-token":hashlib.sha256(auth_token.encode()).hexdigest()})["username"]
+        ret["id"] = util.database.user_collection.find_one({"auth-token":hashlib.sha256(request.cookies["auth_token"].encode()).hexdigest()})["uid"]
+        res.json(ret)
     handler.request.sendall(res.to_data())
+
+def update(request, handler):
+    res = Response()
+    credentials = extract_credentials(request)
+    auth_token = request.cookies["auth_token"]
+    hashed_auth = hashlib.sha256(auth_token.encode()).hexdigest()
+    username = credentials[0]
+    password = credentials[1]
+    if password == "":
+        # only change username
+        util.database.user_collection.update_one({"auth-user":hashed_auth},{"$set":{"username":username}})
+        res.status_code("200", "Updated OK")
+        handler.request.sendall(res.to_data())
+    else:
+        if not validate_password(password):
+            res.set_status("400", "Password Invalid")
+        else:
+            util.database.user_collection.update_one({"auth-user":hashed_auth},{"$set":{"username":username}})
+            salt = util.database.user_collection.find_one({"auth-token":hashed_auth})["salt"]
+            new_hash = bcrypt.hashpw(password.encode(),salt)
+            util.database.user_collection.update_one({"auth-user":hashed_auth},{"$set":{"password":username}})
+
+# if __name__ == '__main__':
+    # database.chat_collection.drop()
+    # database.user_collection.drop()
