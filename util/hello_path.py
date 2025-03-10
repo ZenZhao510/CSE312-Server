@@ -288,7 +288,7 @@ def login(request, handler):
     else:
         salt = util.database.user_collection.find_one({"username":credentials[0]})["salt"]
 
-        # compare password salt has
+        # compare password salt hash
         if (bcrypt.hashpw(credentials[1].encode(), salt) != util.database.user_collection.find_one({"username":credentials[0]})["password"]):
             res.set_status("400","Invalid Login")
             res.text("Incorrect Username or Password")
@@ -364,30 +364,28 @@ def search(request, handler):
 def update(request, handler):
     res = Response()
     credentials = extract_credentials(request)
-    # print(credentials)
     auth_token = request.cookies["auth_token"]
-    # print(auth_token)
     hashed_auth = hashlib.sha256(auth_token.encode()).hexdigest()
     username = credentials[0]
-    # print(username)
     password = credentials[1]
-    # print(password)
-    # print(util.database.user_collection.find_one({"auth-token":hashed_auth}))
+
+
     if password == "":
         # only change username
         # print("Password Blank")
-        util.database.user_collection.update_one({"auth-user":hashed_auth},{"$set":{"username":username}})
+        util.database.user_collection.update_one({"auth-token":hashed_auth},{"$set":{"username":username}})
         res.set_status("200", "Updated OK")
     else:
         if validate_password(password) != True:
             # print("Password Invalid")
             res.set_status("400", "Password Invalid")
         else:
-            util.database.user_collection.update_one({"auth-user":hashed_auth},{"$set":{"username":username}})
+
+            util.database.user_collection.update_one({"auth-token":hashed_auth},{"$set":{"username":username}})
             salt = util.database.user_collection.find_one({"auth-token":hashed_auth})["salt"]
             new_hash = bcrypt.hashpw(password.encode(),salt)
             # print(new_hash)
-            util.database.user_collection.update_one({"auth-user":hashed_auth},{"$set":{"password":new_hash}})
+            util.database.user_collection.update_one({"auth-token":hashed_auth},{"$set":{"password":new_hash}})
             res.set_status("200", "Username and Password Updated")
             # print(util.database.user_collection.find_one({"auth-token":hashed_auth}))
     handler.request.sendall(res.to_data())
