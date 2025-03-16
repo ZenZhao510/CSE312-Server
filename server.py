@@ -1,26 +1,31 @@
 import socketserver
 from util.request import Request
 from util.router import Router
-from util.hello_path import hello_path
-from util.hello_path import public_path
-from util.hello_path import index_path
-from util.hello_path import chat_path
-from util.hello_path import register_path
-from util.hello_path import login_path
-from util.hello_path import settings_path
-from util.hello_path import search_users_path
+from util.paths import hello_path
+from util.paths import public_path
+from util.paths import index_path
+from util.paths import chat_path
+from util.paths import register_path
+from util.paths import login_path
+from util.paths import settings_path
+from util.paths import search_users_path
+from util.paths import change_avatar
+from util.paths import videotube
 
-from util.hello_path import post_chat
-from util.hello_path import get_chat
-from util.hello_path import patch_chat
-from util.hello_path import delete_chat
+from util.paths import post_chat
+from util.paths import get_chat
+from util.paths import patch_chat
+from util.paths import delete_chat
 
-from util.hello_path import register
-from util.hello_path import login
-from util.hello_path import logout
-from util.hello_path import atme
-from util.hello_path import update
-from util.hello_path import search
+from util.paths import register
+from util.paths import login
+from util.paths import logout
+from util.paths import atme
+from util.paths import update
+from util.paths import search
+
+from util.paths import videotube_upload
+from util.paths import videotube_view
 
 class MyTCPHandler(socketserver.BaseRequestHandler):
 
@@ -35,6 +40,8 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
         self.router.add_route("GET", "/login", login_path, True)
         self.router.add_route("GET", "/settings", settings_path, True)
         self.router.add_route("GET", "/search-users", search_users_path, True)
+        self.router.add_route("GET", "/change-avatar", change_avatar, True)
+        self.router.add_route("GET", "/videotube", videotube, True)
 
         # chat routes
         self.router.add_route("POST", "/api/chats", post_chat, True)
@@ -54,6 +61,11 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
         self.router.add_route("GET", "/api/users/search", search)
         # update routes
         self.router.add_route("POST", "/api/users/settings", update, True)
+
+        # video upload route
+        self.router.add_route("POST", "/videotube/upload", videotube_upload)
+        # video view route
+        self.router.add_route("GET", "/videotube/videos", videotube_view)
         # TODO: Add your routes here
         super().__init__(request, client_address, server)
 
@@ -72,9 +84,9 @@ def main():
     host = "0.0.0.0"
     # make sure to change back to 8080 for submissions
     port = 8080
-    socketserver.TCPServer.allow_reuse_address = True
+    socketserver.ThreadingTCPServer.allow_reuse_address = True
 
-    server = socketserver.TCPServer((host, port), MyTCPHandler)
+    server = socketserver.ThreadingTCPServer((host, port), MyTCPHandler)
 
     print("Listening on port " + str(port))
     server.serve_forever()

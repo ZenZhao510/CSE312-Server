@@ -390,6 +390,18 @@ def update(request, handler):
             # print(util.database.user_collection.find_one({"auth-token":hashed_auth}))
     handler.request.sendall(res.to_data())
 
+def change_avatar(request, handler):
+    pass
+
+def videotube(request, handler):
+    pass
+
+def videotube_upload(request, handler):
+    pass
+
+def videotube_view(request, handler):
+    pass
+
 # if __name__ == '__main__':
     # database.chat_collection.drop()
     # database.user_collection.drop()
