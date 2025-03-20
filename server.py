@@ -70,6 +70,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
         super().__init__(request, client_address, server)
 
     def handle(self):
+        # this only gets 2048 bytes of data, requires buffering for large requests involving files
         received_data = self.request.recv(2048)
         print(self.client_address)
         print("--- received data ---")
