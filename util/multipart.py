@@ -38,7 +38,7 @@ class Multipart:
     # first boundary does not have this split, can probably pass a bytearray of CRLF + body for simplicity
     def addParts(self, body):
         # this also removes the first empty entry from this split list
-        splitBoundary = body.split(b"\r\n--"+self.boundary+b"\r\n")[1:]
+        splitBoundary = body.split(b"\r\n--"+self.boundary.encode()+b"\r\n")[1:]
         for part in splitBoundary:
             newPart = MultipartPart(part)
             self.parts.append(newPart)
