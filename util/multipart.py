@@ -59,7 +59,7 @@ class MultipartPart:
             directives = {}
             directivesList = self.headers["Content-Disposition"].split(";")[1:]
             for directive in directivesList:
-                directives[directive.split("=",1)[0].strip()] = directive.split("=":,1)[1].strip()
+                directives[directive.split("=",1)[0].strip()] = directive.split("=",1)[1].strip()
             # assign name field with the proper directive
             if ("name" in directives):
                 self.name = directives["name"]
