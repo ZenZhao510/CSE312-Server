@@ -24,6 +24,7 @@ from util.paths import atme
 from util.paths import update
 from util.paths import search
 
+from util.paths import avatar
 from util.paths import videotube_upload
 from util.paths import videotube_view
 
@@ -31,6 +32,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 
     def __init__(self, request, client_address, server):
         self.router = Router()
+
         # static files
         self.router.add_route("GET", "/hello", hello_path, True)
         self.router.add_route("GET", "/public", public_path)
@@ -62,6 +64,8 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
         # update routes
         self.router.add_route("POST", "/api/users/settings", update, True)
 
+        # avatar upload route
+        self.router.add_route("POST", "/api/users/avatar", avatar, True)
         # video upload route
         self.router.add_route("POST", "/videotube/upload", videotube_upload)
         # video view route
@@ -70,15 +74,50 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
         super().__init__(request, client_address, server)
 
     def handle(self):
-        # this only gets 2048 bytes of data, requires buffering for large requests involving files
-        received_data = self.request.recv(2048)
-        print(self.client_address)
-        print("--- received data ---")
-        print(received_data)
-        print("--- end of data ---\n\n")
-        request = Request(received_data)
+        content_length = None
+        buffer = b""
+        headers = b""
+        # print(buffer)
+        # print("--- cleared buffer ---\n\n")
 
-        self.router.route_request(request, self)
+        while True:
+            # this only gets 2048 bytes of data, requires buffering for large requests involving files
+            received_data = self.request.recv(2048)
+            print(self.client_address)
+            print("--- received data ---")
+            print(received_data)
+            print("--- end of data ---\n\n")
+            # if no more bytes are sent, break
+            if not received_data:
+                break
+
+            buffer += received_data
+            # print(buffer)
+            # print("--- updated buffer ---\n\n")
+
+            if content_length is None:
+                headers, body = buffer.split(b"\r\n\r\n", 1)
+                buffer = body
+                headers_list = headers.split(b"\r\n")[1:]
+                headers_dict = {}
+                for header in headers_list:
+                    headers_dict[header.split(b":",1)[0].strip()] = header.split(b":",1)[1].strip()
+                if b"Content-Length" in headers_dict:
+                    content_length = int(headers_dict[b"Content-Length"])
+                else:
+                    content_length = 0
+            
+            if content_length is not None and len(buffer) >= content_length:
+                request = Request(headers + b"\r\n\r\n" + buffer[:content_length])
+                # print("--- received full data ---")
+                # print(headers)
+                # print(buffer)
+                # print("--- end of full data ---\n\n")
+                buffer = buffer[content_length:]
+                # print(buffer)
+                # print("--- remainder of buffer of full data ---\n\n")
+                content_length = None
+                self.router.route_request(request, self)
 
 
 def main():

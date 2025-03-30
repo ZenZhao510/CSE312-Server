@@ -414,6 +414,9 @@ def videotube(request, handler):
     res.headers({"Content-Type":"text/html"})
     handler.request.sendall(res.to_data())
 
+def avatar(request, handler):
+    pass
+
 def videotube_upload(request, handler):
     pass
 
