@@ -1,4 +1,4 @@
-from request import Request
+from util.request import Request
 
 # we assume that the request is complete and that buffering has been done in server.py to construct a full request
 # requirements to parse multipart requests:

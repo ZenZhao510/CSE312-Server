@@ -391,10 +391,28 @@ def update(request, handler):
     handler.request.sendall(res.to_data())
 
 def change_avatar(request, handler):
-    pass
+    res = Response()
+    layout = ""
+    replace = ""
+    with open("public/layout/layout.html", 'r', encoding = 'utf-8') as file:
+        layout = file.read()
+    with open ("public/change-avatar.html", 'r', encoding = 'utf-8') as file:
+        replace = file.read()
+    res.text(layout.replace("{{content}}", replace))
+    res.headers({"Content-Type":"text/html"})
+    handler.request.sendall(res.to_data())
 
 def videotube(request, handler):
-    pass
+    res = Response()
+    layout = ""
+    replace = ""
+    with open("public/layout/layout.html", 'r', encoding = 'utf-8') as file:
+        layout = file.read()
+    with open ("public/videotube.html", 'r', encoding = 'utf-8') as file:
+        replace = file.read()
+    res.text(layout.replace("{{content}}", replace))
+    res.headers({"Content-Type":"text/html"})
+    handler.request.sendall(res.to_data())
 
 def videotube_upload(request, handler):
     pass
