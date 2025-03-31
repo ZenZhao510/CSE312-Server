@@ -4,7 +4,7 @@ class Request:
         # TODO: parse the bytes of the request and populate the following instance variables
         
         # split by crlf crlf to separate body bytes (not to be decoded)
-        data = request.split(b'\r\n\r\n')
+        data = request.split(b'\r\n\r\n',1)
         # if body exists, set it
         self.body = b''
         if len(data) > 1:

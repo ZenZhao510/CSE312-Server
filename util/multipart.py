@@ -38,8 +38,15 @@ class Multipart:
     # first boundary does not have this split, can probably pass a bytearray of CRLF + body for simplicity
     def addParts(self, body):
         # this also removes the first empty entry from this split list
-        splitBoundary = body.split(b"\r\n--"+self.boundary.encode()+b"\r\n")[1:]
+        # unfortunately, this keeps the first "\r\n" in front of each part
+        splitBoundary = body.split(b"\r\n--"+self.boundary.encode())
+        splitBoundary = splitBoundary[1:]
+        # print(splitBoundary)
+        # removes the last b"--\r\n" from list
+        # nevermind it's not found in 
+        splitBoundary.pop()
         for part in splitBoundary:
+            # print(b"next part is: " + part)
             newPart = MultipartPart(part)
             self.parts.append(newPart)
 
@@ -49,6 +56,8 @@ class MultipartPart:
         data = partData.split(b"\r\n\r\n",1)
         self.content = data[1]
         headersList = data[0].decode().split("\r\n")
+        # remove the first empty entry (due to "\r\n" starting each part)
+        headersList = headersList[1:]
         self.headers = {}
         for header in headersList:
             self.headers[header.split(":",1)[0].strip()] = header.split(":",1)[1].strip()

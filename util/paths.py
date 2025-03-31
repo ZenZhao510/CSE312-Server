@@ -6,6 +6,7 @@ import bcrypt
 import hashlib
 import util.database
 from util.auth import extract_credentials, validate_password
+from util.multipart import parse_multipart, Multipart, MultipartPart
 
 # This path is provided as an example of how to use the router
 def hello_path(request, handler):
@@ -415,7 +416,10 @@ def videotube(request, handler):
     handler.request.sendall(res.to_data())
 
 def avatar(request, handler):
-    pass
+    res = Response()
+    multipart = parse_multipart(request)
+    # print(multipart.boundary)
+    # print(multipart.parts)
 
 def videotube_upload(request, handler):
     pass
