@@ -11,6 +11,8 @@ from util.paths import settings_path
 from util.paths import search_users_path
 from util.paths import change_avatar
 from util.paths import videotube
+from util.paths import videotube_upload
+from util.paths import videotube_view
 
 from util.paths import post_chat
 from util.paths import get_chat
@@ -25,8 +27,9 @@ from util.paths import update
 from util.paths import search
 
 from util.paths import avatar
-from util.paths import videotube_upload
-from util.paths import videotube_view
+from util.paths import upload
+from util.paths import retrieve
+from util.paths import retrieve_one
 
 class MyTCPHandler(socketserver.BaseRequestHandler):
 
@@ -44,6 +47,8 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
         self.router.add_route("GET", "/search-users", search_users_path, True)
         self.router.add_route("GET", "/change-avatar", change_avatar, True)
         self.router.add_route("GET", "/videotube", videotube, True)
+        self.router.add_route("GET", "/videotube/upload", videotube_upload, True)
+        self.router.add_route("GET", "/videotube/videos/", videotube_view)
 
         # chat routes
         self.router.add_route("POST", "/api/chats", post_chat, True)
@@ -67,9 +72,10 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
         # avatar upload route
         self.router.add_route("POST", "/api/users/avatar", avatar, True)
         # video upload route
-        self.router.add_route("POST", "/videotube/upload", videotube_upload)
+        self.router.add_route("POST", "/api/videos", upload, True)
         # video view route
-        self.router.add_route("GET", "/videotube/videos", videotube_view)
+        self.router.add_route("GET", "/videotube/videos", retrieve, True)
+        self.router.add_route("GET", "/api/videos", retrieve_one)
         # TODO: Add your routes here
         super().__init__(request, client_address, server)
 
@@ -83,10 +89,10 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
         while True:
             # this only gets 2048 bytes of data, requires buffering for large requests involving files
             received_data = self.request.recv(2048)
-            print(self.client_address)
-            print("--- received data ---")
-            print(received_data)
-            print("--- end of data ---\n\n")
+            # print(self.client_address)
+            # print("--- received data ---")
+            # print(received_data)
+            # print("--- end of data ---\n\n")
             # if no more bytes are sent, break
             if not received_data:
                 break

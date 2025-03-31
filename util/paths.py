@@ -16,7 +16,7 @@ def hello_path(request, handler):
 
 def public_path(request, handler):
     res = Response()
-    img = ["jpg","ico","webp","gif"]
+    img = ["jpg","ico","webp","gif","png"]
     txt = ["js","css"]
     # can't have '/' in filepath according to @92
     filepath = request.path[1:]
@@ -186,6 +186,9 @@ def auth_chat(request, handler):
     message["content"] = body["content"]
     # set updated to False
     message["updated"] = False
+    # if user has profile pic, include in message
+    if util.database.user_collection.find_one({"auth-token":hashlib.sha256(request.cookies["auth_token"].encode()).hexdigest()})["haspic"]:
+        message["imageURL"] = util.database.user_collection.find_one({"auth-token":hashlib.sha256(request.cookies["auth_token"].encode()).hexdigest()})["imageURL"]
     util.database.chat_collection.insert_one(message)
 
     res.text("message sent")
@@ -267,7 +270,7 @@ def register(request, handler):
         handler.request.sendall(res.to_data())
     else:
         salt = bcrypt.gensalt()
-        user = {"uid":str(uuid.uuid4()), "username":credentials[0], "password":bcrypt.hashpw(credentials[1].encode(), salt), "salt":salt}
+        user = {"uid":str(uuid.uuid4()), "username":credentials[0], "password":bcrypt.hashpw(credentials[1].encode(), salt), "salt":salt, "haspic": False}
         util.database.user_collection.insert_one(user)
         # print(util.database.user_collection.find_one({"username":credentials[0]}))
     res.json(credentials)
@@ -344,6 +347,9 @@ def atme(request, handler):
         # print(util.database.user_collection.find_one({"auth-token":hashlib.sha256(auth_token.encode()).hexdigest()})) 
         ret["username"] = util.database.user_collection.find_one({"auth-token":hashlib.sha256(auth_token.encode()).hexdigest()})["username"]
         ret["id"] = util.database.user_collection.find_one({"auth-token":hashlib.sha256(request.cookies["auth_token"].encode()).hexdigest()})["uid"]
+        # have to somehow test for imageURL
+        if util.database.user_collection.find_one({"auth-token":hashlib.sha256(request.cookies["auth_token"].encode()).hexdigest()})["haspic"]:
+            ret["imageURL"] = util.database.user_collection.find_one({"auth-token":hashlib.sha256(request.cookies["auth_token"].encode()).hexdigest()})["imageURL"]
         res.json(ret)
     handler.request.sendall(res.to_data())
 
@@ -415,6 +421,31 @@ def videotube(request, handler):
     res.headers({"Content-Type":"text/html"})
     handler.request.sendall(res.to_data())
 
+def videotube_upload(request, handler):
+    res = Response()
+    layout = ""
+    replace = ""
+    with open("public/layout/layout.html", 'r', encoding = 'utf-8') as file:
+        layout = file.read()
+    with open ("public/videotube/upload.html", 'r', encoding = 'utf-8') as file:
+        replace = file.read()
+    res.text(layout.replace("{{content}}", replace))
+    res.headers({"Content-Type":"text/html"})
+    handler.request.sendall(res.to_data())
+
+def videotube_view(request, handler):
+    res = Response()
+    layout = ""
+    replace = ""
+    with open("public/layout/layout.html", 'r', encoding = 'utf-8') as file:
+        layout = file.read()
+    with open ("public/videos.html", 'r', encoding = 'utf-8') as file:
+        replace = file.read()
+    res.text(layout.replace("{{content}}", replace))
+    res.headers({"Content-Type":"text/html"})
+    handler.request.sendall(res.to_data())
+
+
 def avatar(request, handler):
     res = Response()
     multipart = parse_multipart(request)
@@ -430,7 +461,7 @@ def avatar(request, handler):
             else:
                 ext = headers["Content-Type"].split("/")[1]
             
-            filepath = "public/img/profile-pics/" + str(uuid.uuid4()) + "." + ext
+            filepath = "public/imgs/profile-pics/" + str(uuid.uuid4()) + "." + ext
             # upload to public/img/profile-pics/{uuid}.{ext}
             with open(filepath, 'wb') as file:
                 file.write(part.content)
@@ -441,16 +472,20 @@ def avatar(request, handler):
             if "auth_token" in request.cookies:
                 author = util.database.user_collection.find_one({"auth-token":hashlib.sha256(request.cookies["auth_token"].encode()).hexdigest()})["username"]
                 util.database.chat_collection.update_many({"author":author},{"$set":{"imageURL":filepath}})
+                util.database.user_collection.update_one({"username":author},{"$set":{"imageURL":filepath, "haspic":True}})
 
     res.text("Avatar Updated")
     handler.request.sendall(res.to_data())
     # print(multipart.boundary)
-    # print(multipart.parts)
+    print(multipart.parts)
 
-def videotube_upload(request, handler):
+def upload(request, handler):
     pass
 
-def videotube_view(request, handler):
+def retrieve(request, handler):
+    pass
+
+def retrieve_one(request, handler):
     pass
 
 # if __name__ == '__main__':

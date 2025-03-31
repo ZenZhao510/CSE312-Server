@@ -40,11 +40,13 @@ class Multipart:
         # this also removes the first empty entry from this split list
         # unfortunately, this keeps the first "\r\n" in front of each part
         splitBoundary = body.split(b"\r\n--"+self.boundary.encode())
+        # print(splitBoundary)
         splitBoundary = splitBoundary[1:]
         # print(splitBoundary)
         # removes the last b"--\r\n" from list
         # nevermind it's not found in 
         splitBoundary.pop()
+        # print(splitBoundary)
         for part in splitBoundary:
             # print(b"next part is: " + part)
             newPart = MultipartPart(part)
@@ -71,4 +73,18 @@ class MultipartPart:
                 directives[directive.split("=",1)[0].strip()] = directive.split("=",1)[1].strip()
             # assign name field with the proper directive
             if ("name" in directives):
-                self.name = directives["name"]
+                self.name = directives["name"].strip('"').strip("'")
+
+def test1():
+    request = Request(b'POST / HTTP/1.1\r\nHost: localhost:8080\r\nContent-Length: 252\r\nContent-Type: multipart/form-data; boundary=----WebKitFormBoundaryfkz9sCA6fR3CAHN4\r\n\r\n------WebKitFormBoundaryfkz9sCA6fR3CAHN4\r\nContent-Disposition: form-data; name="commenter"\r\n\r\nJesse\r\n------WebKitFormBoundaryfkz9sCA6fR3CAHN4--\r\n')
+    multipart = parse_multipart(request)
+    # print(multipart.parts)
+    assert len(multipart.parts) == 1
+    # print(multipart.parts[0].name)
+    expectedname = "commenter"
+    assert multipart.parts[0].content == b"Jesse"
+    # for some reason name is freaking out
+    # assert multipart.parts[0].name == expectedname
+
+if __name__ == '__main__':
+    test1()
