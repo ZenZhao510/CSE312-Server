@@ -418,6 +418,32 @@ def videotube(request, handler):
 def avatar(request, handler):
     res = Response()
     multipart = parse_multipart(request)
+
+    # grab Content-Type
+    for part in multipart.parts:
+        headers = part.headers
+        if "Content-Type" in headers:
+            ext = ""
+            # grab MIME type based on ending of Content-Type
+            if headers["Content-Type"] == "image/jpeg":
+                ext = "jpg"
+            else:
+                ext = headers["Content-Type"].split("/")[1]
+            
+            filepath = "public/img/profile-pics/" + str(uuid.uuid4()) + "." + ext
+            # upload to public/img/profile-pics/{uuid}.{ext}
+            with open(filepath, 'wb') as file:
+                file.write(part.content)
+            
+            # update user's messages to include imageURL field
+            # take auth_token, find the user it's associated with
+            # after that, update all of that's user's messages
+            if "auth_token" in request.cookies:
+                author = util.database.user_collection.find_one({"auth-token":hashlib.sha256(request.cookies["auth_token"].encode()).hexdigest()})["username"]
+                util.database.chat_collection.update_many({"author":author},{"$set":{"imageURL":filepath}})
+
+    res.text("Avatar Updated")
+    handler.request.sendall(res.to_data())
     # print(multipart.boundary)
     # print(multipart.parts)
 
