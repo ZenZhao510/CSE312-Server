@@ -4,6 +4,7 @@ import json
 import uuid
 import bcrypt
 import hashlib
+import datetime
 import util.database
 from util.auth import extract_credentials, validate_password
 from util.multipart import parse_multipart, Multipart, MultipartPart
@@ -141,14 +142,16 @@ def guest_chat(request, handler):
         # print("Guest already has cookie: "+request.cookies["session"])
         message["author"] = request.cookies["session"]
     else:
-        session = str(uuid.uuid4())
+        sesh_id = uuid.uuid4()
+        session = str(sesh_id)
         # print("Guest generated new cookie: "+session)
         message["author"] = session
         # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
         # i for some reason generated another session cookie which meant everything after has something different FUUUUUUUUUUUUCK
         session = session + "; Path=/"
         res.cookies({"session":session})
-    message["id"] = str(uuid.uuid4())
+    msg_id = uuid.uuid4()
+    message["id"] = str(msg_id)
     message["content"] = body["content"]
     # set updated to False
     message["updated"] = False
@@ -160,7 +163,7 @@ def guest_chat(request, handler):
     # res.cookies(request.cookies)
     # print(res.to_data())
     send = res.to_data()
-    print(send)
+    # print(send)
     handler.request.sendall(send)
 
 def auth_chat(request, handler):
@@ -182,7 +185,8 @@ def auth_chat(request, handler):
     # do we also need to set a session token? probably not? this might actually be why logout breaks but autolab doesn't detect it
     
     # prepare message for insertion into DB
-    message["id"] = str(uuid.uuid4())
+    msg_id = uuid.uuid4()
+    message["id"] = str(msg_id)
     message["content"] = body["content"]
     # set updated to False
     message["updated"] = False
@@ -270,7 +274,8 @@ def register(request, handler):
         handler.request.sendall(res.to_data())
     else:
         salt = bcrypt.gensalt()
-        user = {"uid":str(uuid.uuid4()), "username":credentials[0], "password":bcrypt.hashpw(credentials[1].encode(), salt), "salt":salt, "haspic": False}
+        uid = uuid.uuid4()
+        user = {"uid":str(uid), "username":credentials[0], "password":bcrypt.hashpw(credentials[1].encode(), salt), "salt":salt, "haspic": False}
         util.database.user_collection.insert_one(user)
         # print(util.database.user_collection.find_one({"username":credentials[0]}))
     res.json(credentials)
@@ -304,7 +309,8 @@ def login(request, handler):
         # update all messages with that cookie as author retroactively
         util.database.chat_collection.update_many({"author":cookies["session"]},{"$set":{"author":credentials[0]}})
     # set auth_token with HttpOnly directive that expires in an hour
-    auth_token = str(uuid.uuid4())
+    tkn = uuid.uuid4()
+    auth_token = str(tkn)
     res.cookies({"auth_token":auth_token+"; HttpOnly; Max-Age=3600; Path=/"})
     # print(util.database.user_collection.find_one({"username":credentials[0]}))
     # store auth_token hashed in db without a salt
@@ -427,7 +433,7 @@ def videotube_upload(request, handler):
     replace = ""
     with open("public/layout/layout.html", 'r', encoding = 'utf-8') as file:
         layout = file.read()
-    with open ("public/videotube/upload.html", 'r', encoding = 'utf-8') as file:
+    with open ("public/upload.html", 'r', encoding = 'utf-8') as file:
         replace = file.read()
     res.text(layout.replace("{{content}}", replace))
     res.headers({"Content-Type":"text/html"})
@@ -439,7 +445,7 @@ def videotube_view(request, handler):
     replace = ""
     with open("public/layout/layout.html", 'r', encoding = 'utf-8') as file:
         layout = file.read()
-    with open ("public/videos.html", 'r', encoding = 'utf-8') as file:
+    with open ("public/view-video.html", 'r', encoding = 'utf-8') as file:
         replace = file.read()
     res.text(layout.replace("{{content}}", replace))
     res.headers({"Content-Type":"text/html"})
@@ -460,8 +466,8 @@ def avatar(request, handler):
                 ext = "jpg"
             else:
                 ext = headers["Content-Type"].split("/")[1]
-            
-            filepath = "public/imgs/profile-pics/" + str(uuid.uuid4()) + "." + ext
+            path = uuid.uuid4()
+            filepath = "public/imgs/profile-pics/" + str(path) + "." + ext
             # upload to public/img/profile-pics/{uuid}.{ext}
             with open(filepath, 'wb') as file:
                 file.write(part.content)
@@ -477,17 +483,66 @@ def avatar(request, handler):
     res.text("Avatar Updated")
     handler.request.sendall(res.to_data())
     # print(multipart.boundary)
-    print(multipart.parts)
+    # print(multipart.parts)
 
 def upload(request, handler):
-    pass
+    res = Response()
+    multipart = parse_multipart(request)
+    video = {"author_id":"", "title":"", "description":"", "video_path":"", "created_at":"", "id":""}
+    
+    # steps to handling an upload:
+    #
+    # 1. create file and write bytes by using multipart
+    # 2. record the filename of the new file
+    # 3. for every other non-file part, store them as fields in database alongside author, date created, and a unique video id
+    for part in multipart.parts:
+        headers = part.headers
+        if part.name == "title":
+            video["title"] = part.content.decode()
+        if part.name == "description":
+            video["description"] = part.content.decode()
+        if "Content-Type" in headers:
+            vid_id = uuid.uuid4()
+            filepath = "public/" + str(vid_id) + ".mp4"
+            video["video_path"] = filepath
+            with open(filepath, 'wb') as file:
+                file.write(part.content)
+            if "auth_token" in request.cookies:
+                author_id = str(util.database.user_collection.find_one({"auth-token":hashlib.sha256(request.cookies["auth_token"].encode()).hexdigest()})["username"])
+                video["author_id"] = author_id
+                video["id"] = str(uuid.uuid4)
+                res.json({"id":video["id"]})
+    video["created_at"] = datetime.datetime.now().strftime("%c")
+    print("--- to be inserted into database ---")
+    print(video)
+    print("--- end of video be inserted into database ---")
+    util.database.video_collection.insert_one(video)
+    handler.request.sendall(res.to_data())
+
 
 def retrieve(request, handler):
-    pass
+    res = Response()
+    # grab every video and simply stuff them into a list
+    videos = list(util.database.video_collection.find({}))
+    # print(videos)
+    res.json({"videos":videos})
+    # print(res.to_data())
+    handler.request.sendall(res.to_data())
 
 def retrieve_one(request, handler):
-    pass
+    res = Response()
+
+    # print(request.path.split("/"))
+    video_id = request.path.split("/")[3]
+
+    # grab a video and simply stuff them into a dict
+    videos = util.database.video_collection.find_one({"id":video_id})
+    # print(videos)
+    res.json({"video":videos})
+    # print(res.to_data())
+    handler.request.sendall(res.to_data())
 
 # if __name__ == '__main__':
     # database.chat_collection.drop()
     # database.user_collection.drop()
+    # database.video_collection.drop()

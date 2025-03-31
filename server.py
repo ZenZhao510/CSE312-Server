@@ -74,8 +74,8 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
         # video upload route
         self.router.add_route("POST", "/api/videos", upload, True)
         # video view route
-        self.router.add_route("GET", "/videotube/videos", retrieve, True)
-        self.router.add_route("GET", "/api/videos", retrieve_one)
+        self.router.add_route("GET", "/api/videos", retrieve, True)
+        self.router.add_route("GET", "/api/videos/", retrieve_one)
         # TODO: Add your routes here
         super().__init__(request, client_address, server)
 
@@ -89,10 +89,10 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
         while True:
             # this only gets 2048 bytes of data, requires buffering for large requests involving files
             received_data = self.request.recv(2048)
-            # print(self.client_address)
-            # print("--- received data ---")
-            # print(received_data)
-            # print("--- end of data ---\n\n")
+            print(self.client_address)
+            print("--- received data ---")
+            print(received_data)
+            print("--- end of data ---\n\n")
             # if no more bytes are sent, break
             if not received_data:
                 break
