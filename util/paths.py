@@ -19,6 +19,7 @@ def public_path(request, handler):
     res = Response()
     img = ["jpg","ico","webp","gif","png"]
     txt = ["js","css"]
+    vid = ["mp4"]
     # can't have '/' in filepath according to @92
     filepath = request.path[1:]
     path_array = filepath.split('.')
@@ -42,7 +43,10 @@ def public_path(request, handler):
                 if ext == "js":
                     res.headers({"Content-Type":"text/javascript"})
                 else:
-                    res.headers({"Content-Type":"text/"+ext})        
+                    res.headers({"Content-Type":"text/"+ext})    
+            elif ext in vid:
+                res.bytes(read_data)
+                res.headers({"Content-Type":"video/"+ext})    
         handler.request.sendall(res.to_data())
     else:
         res.set_statusset_status("404","Not Found").text("The requested resource cannot be found")
@@ -503,14 +507,14 @@ def upload(request, handler):
             video["description"] = part.content.decode()
         if "Content-Type" in headers:
             vid_id = uuid.uuid4()
-            filepath = "public/" + str(vid_id) + ".mp4"
+            filepath = "public/videos/" + str(vid_id) + ".mp4"
             video["video_path"] = filepath
             with open(filepath, 'wb') as file:
                 file.write(part.content)
             if "auth_token" in request.cookies:
-                author_id = str(util.database.user_collection.find_one({"auth-token":hashlib.sha256(request.cookies["auth_token"].encode()).hexdigest()})["username"])
+                author_id = str(util.database.user_collection.find_one({"auth-token":hashlib.sha256(request.cookies["auth_token"].encode()).hexdigest()})["uid"])
                 video["author_id"] = author_id
-                video["id"] = str(uuid.uuid4)
+                video["id"] = str(vid_id)
                 res.json({"id":video["id"]})
     video["created_at"] = datetime.datetime.now().strftime("%c")
     print("--- to be inserted into database ---")
@@ -523,7 +527,7 @@ def upload(request, handler):
 def retrieve(request, handler):
     res = Response()
     # grab every video and simply stuff them into a list
-    videos = list(util.database.video_collection.find({}))
+    videos = list(util.database.video_collection.find({},{"_id":False}))
     # print(videos)
     res.json({"videos":videos})
     # print(res.to_data())
@@ -536,8 +540,8 @@ def retrieve_one(request, handler):
     video_id = request.path.split("/")[3]
 
     # grab a video and simply stuff them into a dict
-    videos = util.database.video_collection.find_one({"id":video_id})
-    # print(videos)
+    videos = util.database.video_collection.find_one({"id":video_id},{"_id:":False})
+    print(videos)
     res.json({"video":videos})
     # print(res.to_data())
     handler.request.sendall(res.to_data())
