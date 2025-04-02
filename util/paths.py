@@ -546,6 +546,67 @@ def retrieve_one(request, handler):
     # print(res.to_data())
     handler.request.sendall(res.to_data())
 
+def test_websocket(request, handler):
+    res = Response()
+    layout = ""
+    replace = ""
+    with open("public/layout/layout.html", 'r', encoding = 'utf-8') as file:
+        layout = file.read()
+    with open ("public/test-websocket.html", 'r', encoding = 'utf-8') as file:
+        replace = file.read()
+    res.text(layout.replace("{{content}}", replace))
+    res.headers({"Content-Type":"text/html"})
+    handler.request.sendall(res.to_data())
+    
+
+def drawing_board(request, handler):
+    res = Response()
+    layout = ""
+    replace = ""
+    with open("public/layout/layout.html", 'r', encoding = 'utf-8') as file:
+        layout = file.read()
+    with open ("public/drawing-board.html", 'r', encoding = 'utf-8') as file:
+        replace = file.read()
+    res.text(layout.replace("{{content}}", replace))
+    res.headers({"Content-Type":"text/html"})
+    handler.request.sendall(res.to_data())
+
+def direct_messaging(request, handler):
+    res = Response()
+    layout = ""
+    replace = ""
+    with open("public/layout/layout.html", 'r', encoding = 'utf-8') as file:
+        layout = file.read()
+    with open ("public/direct-messaging.html", 'r', encoding = 'utf-8') as file:
+        replace = file.read()
+    res.text(layout.replace("{{content}}", replace))
+    res.headers({"Content-Type":"text/html"})
+    handler.request.sendall(res.to_data())
+
+def video_call(request, handler):
+    res = Response()
+    layout = ""
+    replace = ""
+    with open("public/layout/layout.html", 'r', encoding = 'utf-8') as file:
+        layout = file.read()
+    with open ("public/video-call.html", 'r', encoding = 'utf-8') as file:
+        replace = file.read()
+    res.text(layout.replace("{{content}}", replace))
+    res.headers({"Content-Type":"text/html"})
+    handler.request.sendall(res.to_data())
+
+def video_call_room(request, handler):
+    res = Response()
+    layout = ""
+    replace = ""
+    with open("public/layout/layout.html", 'r', encoding = 'utf-8') as file:
+        layout = file.read()
+    with open ("public/video-call-room.html", 'r', encoding = 'utf-8') as file:
+        replace = file.read()
+    res.text(layout.replace("{{content}}", replace))
+    res.headers({"Content-Type":"text/html"})
+    handler.request.sendall(res.to_data())
+
 # if __name__ == '__main__':
     # database.chat_collection.drop()
     # database.user_collection.drop()

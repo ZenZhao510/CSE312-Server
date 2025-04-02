@@ -13,6 +13,11 @@ from util.paths import change_avatar
 from util.paths import videotube
 from util.paths import videotube_upload
 from util.paths import videotube_view
+from util.paths import test_websocket
+from util.paths import drawing_board
+from util.paths import direct_messaging
+from util.paths import video_call
+from util.paths import video_call_room
 
 from util.paths import post_chat
 from util.paths import get_chat
@@ -49,6 +54,11 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
         self.router.add_route("GET", "/videotube", videotube, True)
         self.router.add_route("GET", "/videotube/upload", videotube_upload, True)
         self.router.add_route("GET", "/videotube/videos/", videotube_view)
+        self.router.add_route("GET", "/test-websocket", test_websocket, True)
+        self.router.add_route("GET", "/drawing-board", drawing_board, True)
+        self.router.add_route("GET", "/direct-messaging", direct_messaging, True)
+        self.router.add_route("GET", "/video-call", video_call, True)
+        self.router.add_route("GET", "/video-call/", video_call_room)
 
         # chat routes
         self.router.add_route("POST", "/api/chats", post_chat, True)
