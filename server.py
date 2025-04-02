@@ -115,6 +115,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             
             if content_length is not None and len(buffer) >= content_length:
                 request = Request(headers + b"\r\n\r\n" + buffer[:content_length])
+                print(request.cookies)
                 # print("--- received full data ---")
                 # print(headers)
                 # print(buffer)
@@ -129,7 +130,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 def main():
     host = "0.0.0.0"
     # make sure to change back to 8080 for submissions
-    port = 8080
+    port = 8090
     socketserver.ThreadingTCPServer.allow_reuse_address = True
 
     server = socketserver.ThreadingTCPServer((host, port), MyTCPHandler)

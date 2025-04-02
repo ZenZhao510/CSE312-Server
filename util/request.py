@@ -88,7 +88,16 @@ def test3():
     assert "id" in request.cookies
     assert request.cookies["id"] == "1"
 
+def test4():
+    request = Request(b'GET /public/imgs/favicon.ico HTTP/1.1\r\nHost: localhost:8090\r\nConnection: keep-alive\r\nsec-ch-ua-platform: "Windows"\r\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36\r\nsec-ch-ua: "Chromium";v="134", "Not:A-Brand";v="24", "Google Chrome";v="134"\r\nsec-ch-ua-mobile: ?0\r\nAccept: image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8\r\nSec-Fetch-Site: same-origin\r\nSec-Fetch-Mode: no-cors\r\nSec-Fetch-Dest: image\r\nReferer: http://localhost:8090/\r\nAccept-Encoding: gzip, deflate, br, zstd\r\nAccept-Language: en-US,en;q=0.9,ja;q=0.8\r\nCookie: auth_token=2800a8e6-8a9b-4f21-8b40-ebfd8f960c1c\r\n\r\n')
+    assert "Cookie" in request.headers
+    assert request.headers["Cookie"] == 'auth_token=2800a8e6-8a9b-4f21-8b40-ebfd8f960c1c'
+    assert bool(request.cookies) == True
+    assert 'auth_token' in request.cookies
+    assert request.cookies['auth_token'] == '2800a8e6-8a9b-4f21-8b40-ebfd8f960c1c'
+
 if __name__ == '__main__':
     test1()
     test2()
     test3()
+    test4()
