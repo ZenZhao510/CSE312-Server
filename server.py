@@ -125,7 +125,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             
             if content_length is not None and len(buffer) >= content_length:
                 request = Request(headers + b"\r\n\r\n" + buffer[:content_length])
-                print(request.cookies)
+                # print(request.cookies)
                 # print("--- received full data ---")
                 # print(headers)
                 # print(buffer)

@@ -12,6 +12,8 @@ def compute_accept(key):
 
     return ret
 
+
+
 def test1():
     key = "hi"
     # 25717a597d0c0749a666972bc8168397c69de035
