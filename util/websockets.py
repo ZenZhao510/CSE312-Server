@@ -12,7 +12,22 @@ def compute_accept(key):
 
     return ret
 
+def parse_ws_frame(bytes):
+    parsed = WS_Frame(bytes)
+    
+    
 
+    return parsed
+
+class WS_Frame:
+
+    def __init__(self, bytes):
+        self.fin_bit = 0
+        self.opcode = 0
+        self.payload_length = 0
+        self.payload = b""
+    
+    def 
 
 def test1():
     key = "hi"
