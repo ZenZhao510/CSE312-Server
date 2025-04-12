@@ -16,11 +16,21 @@ def compute_accept(key):
 def parse_ws_frame(bytes):
     parsed = WS_Frame(bytes)
 
-    array = bytearray(bytes)
-    parsed.fin_bit = parsed.set_fin(array)
-    parsed.opcode = parsed.set_opcode(array)
-    parsed.payload_length = parsed.set_len(array)
-    parsed.payload = parsed.set_payload(array)
+    # print("Calling set_fin once: ")
+    parsed.set_fin(bytes)
+    # print(parsed.fin_bit)
+
+    # print("Calling set_opcode once: ")
+    parsed.set_opcode(bytes)
+    # print(parsed.opcode)
+
+    # print("Calling set_len once: ")
+    parsed.set_len(bytes)
+    # print(parsed.payload_length)
+
+    # print("Calling set_payload once: ")
+    parsed.set_payload(bytes)
+    # print(parsed.payload)
 
     return parsed
 
@@ -89,15 +99,32 @@ class WS_Frame:
                 mask_start = 2
             payload_start = mask_start + 4
             for byte in bytes[mask_start:payload_start]:
+                # print("Found Mask Bit: ")
+                # print(byte)
                 mask_list.append(byte)
+                
+            # print(mask_list)
             # get payload after mask bytes
             payload_array = bytes[payload_start:]
-
+            # print(payload_array)
+            # print(len(payload_array))
             # for every four bytes of payload, XOR with each byte of mask
             # neat(?) way, copy all payload bytes to another array, use modulo to determine which mask byte to XOR by
             i = 0
             for byte in payload_array:
-                self.payload = byte ^ mask_list[i % 4]
+                # print("Iteration: " + str(i))
+                # print("Current byte in payload: ")
+                # print(byte)
+                # print("Current mask bit: ")
+                # print(mask_list[i % 4])
+                # print("XOR'd out with mask bit: ")
+                # print(byte ^ mask_list[i % 4])
+                xored_byte = byte ^ mask_list[i % 4]
+                # print("Payload is: ")
+                # print(self.payload)
+                self.payload = self.payload + xored_byte.to_bytes(1,"little")
+                # print("Updated Payload is: ")
+                # print(self.payload)
                 i = i + 1
         else:
             # get payload after length bytes
@@ -125,28 +152,24 @@ def test2():
     assert expected == actual
 
 def test3():
-    bytes = b'\x81\x02hi'
+    bytes = b'\x81\x02\x68\x69'
     parsed = parse_ws_frame(bytes)
-    parsed.set_fin(bytes)
-    parsed.set_opcode(bytes)
-    parsed.set_len(bytes)
-    parsed.set_payload(bytes)
 
     expected_len = 2
     actual_len = parsed.payload_length
-    print(actual_len)
+    # print(actual_len)
 
     expected_fin = 1
     actual_fin = parsed.fin_bit
-    print(actual_fin)
+    # print(actual_fin)
 
     expected_opcode = 1
     actual_opcode = parsed.opcode
-    print(actual_opcode)
+    # print(actual_opcode)
 
     expected_payload = b'hi'
     actual_payload = parsed.payload
-    print(actual_payload)
+    # print(actual_payload)
 
     assert expected_len == actual_len
     assert expected_fin == actual_fin
@@ -154,12 +177,40 @@ def test3():
     assert expected_payload == actual_payload
 
 def test4():
-    pass
+    bytes = b'\x81\x82\x08\x09\x0A\x0B\x60\x60'
+    parsed = parse_ws_frame(bytes)
+    # parsed.set_fin(bytes)
+    # parsed.set_opcode(bytes)
+    # parsed.set_len(bytes)
+    # parsed.set_payload(bytes)
+
+    expected_len = 2
+    actual_len = parsed.payload_length
+    # print(actual_len)
+
+    expected_fin = 1
+    actual_fin = parsed.fin_bit
+    # print(actual_fin)
+
+    expected_opcode = 1
+    actual_opcode = parsed.opcode
+    # print(actual_opcode)
+
+    expected_payload = b'hi'
+    actual_payload = parsed.payload
+    # print("Payload is: ")
+    # print(actual_payload)
+
+    assert expected_len == actual_len
+    assert expected_fin == actual_fin
+    assert expected_opcode == actual_opcode
+    assert expected_payload == actual_payload
 
 if __name__ == '__main__':
     test1()
     test2()
     test3()
+    test4()
 
 
 
