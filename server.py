@@ -140,7 +140,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 def main():
     host = "0.0.0.0"
     # make sure to change back to 8080 for submissions
-    port = 8090
+    port = 8080
     socketserver.ThreadingTCPServer.allow_reuse_address = True
 
     server = socketserver.ThreadingTCPServer((host, port), MyTCPHandler)
