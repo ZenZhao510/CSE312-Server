@@ -38,7 +38,7 @@ def generate_ws_frame(bytes):
             mask_len = 0b01111110
             frame = frame + mask_len.to_bytes(1,"big")
             frame = frame + payload_length.to_bytes(2,"big")
-        if payload_length > 65536:
+        if payload_length >= 65536:
             mask_len = 0b01111111
             frame = frame + mask_len.to_bytes(1,"big")
             frame = frame + payload_length.to_bytes(8,"big")
