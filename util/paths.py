@@ -608,35 +608,6 @@ def video_call_room(request, handler):
     res.headers({"Content-Type":"text/html"})
     handler.request.sendall(res.to_data())
 
-sockets = {}
-def websocket(req, handler):
-    res = Response()
-    if "Sec-WebSocket-Key" in req.headers:
-        ws_key = req.headers["Sec-WebSocket-Key"]
-        computed = compute_accept(ws_key)
-
-        # set response code
-        # set response header
-        handler.request.sendall(res)
-        sockets[user_id] = handler.request
-
-        for socket in sockets:
-            try:
-                socket.sendall(blahblah)
-            except:
-                print("error")
-                continue
-        
-        socket[user_id].sendall(blahblah)
-
-        while True:
-            frame = handler.request.recv(2048)
-            print(frame)
-            parsed_frame = parse_ws_frame(frame)
-
-            # if payload received isn't equal to content length, buffer
-            res.body = json.loads(parsed_frame.payload)
-
 # if __name__ == '__main__':
     # database.chat_collection.drop()
     # database.user_collection.drop()
