@@ -608,6 +608,78 @@ def video_call_room(request, handler):
     res.headers({"Content-Type":"text/html"})
     handler.request.sendall(res.to_data())
 
+sockets = {}
+def websocket(req, handler):
+    res = Response()
+    
+    if "Sec-WebSocket-Key" in req.headers:
+        ws_key = req.headers["Sec-WebSocket-Key"]
+        computed = compute_accept(ws_key)
+
+        # set response code
+        res.set_status("101","Switching Protocols")
+        # set response header
+        res.headers({"Connection":"Upgrade", "Upgrade":"websocket","Sec-WebSocket-Accept":computed})
+        handler.request.sendall(res.to_data())
+        if "auth_token" in req.cookies:
+            user_id = str(util.database.user_collection.find_one({"auth-token":hashlib.sha256(req.cookies["auth_token"].encode()).hexdigest()})["uid"])
+            sockets[user_id] = handler.request
+            buffer = b""
+            payload_length = None
+            for socket in sockets:
+                try:
+                    res = Response()
+                    res.text("hi")
+                    socket.sendall(res.to_data())
+                except:
+                    print("error")
+                    continue
+        
+            # socket[user_id].sendall(blahblah)
+
+            while True:
+                received_data = handler.request.recv(2048)
+                # print(received_data)
+                buffer += received_data
+                if payload_length is None:
+                    parsed_frame = parse_ws_frame(received_data)
+                    # print(parsed_frame.fin_bit)
+                    # print(parsed_frame.opcode)
+                    # print(parsed_frame.payload_length)
+                    # print(parsed_frame.payload)
+                    payload_length = parsed_frame.payload_length
+
+                # find which byte the payload starts at
+                payload_starts = 2
+                if 126 <= payload_length < 65536:
+                    payload_starts = 4
+                elif payload_length >= 65536:
+                    payload_starts = 10
+                if (buffer[1] & 0b10000000) >> 7 == 1:
+                    payload_starts += 4
+                
+                # print(payload_starts)
+                if payload_length is not None and len(buffer) >= payload_length + payload_starts:
+                    parsed_frame = parse_ws_frame(buffer)
+                    buffer = buffer[payload_starts+payload_length:]
+                    # print(buffer)
+                    payload_length = None
+                    # print(payload_length)
+                    # print(payload_starts)
+                    # print(parsed_frame.fin_bit)
+                    # print(parsed_frame.opcode)
+                    # print(parsed_frame.payload_length)
+                    # print(parsed_frame.payload)
+                    message_dict = json.loads(parsed_frame.payload.decode())
+                    if "messageType" in message_dict:
+                        if message_dict["messageType"] == "echo_client":
+                            message_text = message_dict["text"]
+                            to_send = {"messageType":"echo_server","text":message_text}
+                            handler.request.sendall(generate_ws_frame(json.dumps(to_send).encode()))
+
+                # if payload received isn't equal to content length, buffer
+                # res.body = json.loads(parsed_frame.payload)
+
 # if __name__ == '__main__':
     # database.chat_collection.drop()
     # database.user_collection.drop()

@@ -1,10 +1,7 @@
 import socketserver
 from util.request import Request
-from util.response import Response
 from util.router import Router
 from util.websockets import compute_accept, generate_ws_frame, parse_ws_frame
-import util.database
-import hashlib
 
 from util.paths import hello_path
 from util.paths import public_path
@@ -40,6 +37,8 @@ from util.paths import avatar
 from util.paths import upload
 from util.paths import retrieve
 from util.paths import retrieve_one
+
+from util.paths import websocket
 
 class MyTCPHandler(socketserver.BaseRequestHandler):
 
@@ -145,40 +144,6 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
                 # print("--- remainder of buffer of full data ---\n\n")
                 content_length = None
                 self.router.route_request(request, self)
-    
-sockets = {}
-def websocket(req, handler):
-    res = Response()
-    if "Sec-WebSocket-Key" in req.headers:
-        ws_key = req.headers["Sec-WebSocket-Key"]
-        computed = compute_accept(ws_key)
-
-        # set response code
-        res.set_status("101","Switching Protocols")
-        # set response header
-        res.headers({"Connection":"Upgrade", "Upgrade":"websocket","Sec-WebSocket-Accept":computed})
-        handler.request.sendall(res.to_data())
-        if "auth_token" in req.cookies:
-            user_id = str(util.database.user_collection.find_one({"auth-token":hashlib.sha256(req.cookies["auth_token"].encode()).hexdigest()})["uid"])
-            sockets[user_id] = handler.request
-
-            for socket in sockets:
-                try:
-                    socket.sendall("hi".encode())
-                except:
-                    print("error")
-                    continue
-        
-            # socket[user_id].sendall(blahblah)
-
-            while True:
-                frame = handler.request.recv(2048)
-                print(frame)
-                parsed_frame = parse_ws_frame(frame)
-                print(parsed_frame)
-
-                # if payload received isn't equal to content length, buffer
-                # res.body = json.loads(parsed_frame.payload)
 
 
 def main():
