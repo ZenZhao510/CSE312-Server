@@ -8,7 +8,7 @@ import datetime
 import util.database
 from util.auth import extract_credentials, validate_password
 from util.multipart import parse_multipart, Multipart, MultipartPart
-from util.websockets import compute_accept, WS_Frame, parse_ws_frame
+from util.websockets import compute_accept, WS_Frame, parse_ws_frame, generate_ws_frame
 
 # This path is provided as an example of how to use the router
 def hello_path(request, handler):
@@ -622,21 +622,38 @@ def websocket(req, handler):
         res.headers({"Connection":"Upgrade", "Upgrade":"websocket","Sec-WebSocket-Accept":computed})
         handler.request.sendall(res.to_data())
         if "auth_token" in req.cookies:
-            user_id = str(util.database.user_collection.find_one({"auth-token":hashlib.sha256(req.cookies["auth_token"].encode()).hexdigest()})["uid"])
+            user_id = str(util.database.user_collection.find_one({"auth-token":hashlib.sha256(req.cookies["auth_token"].encode()).hexdigest()})["username"])
             sockets[user_id] = handler.request
+
+            # send user init_strokes and active_user_lists
+            # code to send to all sockets (probably useful for broadcasting, i.e. active_user_lists)
+            users = []
+            for username in sockets.keys():
+                users.append({"username":username})
+            for username in sockets.keys():
+                try:
+                    # print(username)
+                    to_send = {"messageType":"active_users_list", "users":users}
+                    # print(to_send)
+                    # for some stupid reason calling for socket in sockets doesn't work so here's by id
+                    sockets[username].sendall(generate_ws_frame(json.dumps(to_send).encode()))
+                except:
+                    # print("error with active_users_list")
+                    continue
+            # grab all strokes as a list
+            # list turns the return of find, which is a buncha cursors, into a list of cursors, which is non-jsonable
+            all_strokes = []
+            strokes = util.database.stroke_collection.find({})
+            # horrid way to do this but most basic idea probably (just remake dictionaries)
+            for stroke in strokes:
+                all_strokes.append({"startX": stroke["startX"], "startY": stroke["startY"], "endX": stroke["endX"], "endY": stroke["endY"], "color": stroke["color"]})
+            # print(all_strokes)
+            to_send = {"messageType":"init_strokes","strokes":all_strokes}
+            # print(to_send)
+            sockets[user_id].sendall(generate_ws_frame(json.dumps(to_send).encode()))
+
             buffer = b""
             payload_length = None
-            for socket in sockets:
-                try:
-                    res = Response()
-                    res.text("hi")
-                    socket.sendall(res.to_data())
-                except:
-                    print("error")
-                    continue
-        
-            # socket[user_id].sendall(blahblah)
-
             while True:
                 received_data = handler.request.recv(2048)
                 # print(received_data)
@@ -672,15 +689,39 @@ def websocket(req, handler):
                     # print(parsed_frame.payload)
                     message_dict = json.loads(parsed_frame.payload.decode())
                     if "messageType" in message_dict:
-                        if message_dict["messageType"] == "echo_client":
-                            message_text = message_dict["text"]
-                            to_send = {"messageType":"echo_server","text":message_text}
+                        type = message_dict["messageType"]
+                        if type == "echo_client":
+                            to_send = echo_json(message_dict)
                             handler.request.sendall(generate_ws_frame(json.dumps(to_send).encode()))
+                        if type == "drawing":
+                            to_send = draw(message_dict)
+                            # send to all users the same content (minus masking which is why we have to generate still)
+                            for username in sockets.keys():
+                                try:
+                                    sockets[username].sendall(generate_ws_frame(json.dumps(to_send).encode()))
+                                except:
+                                    print("error with sending drawing")
+                                    continue
 
                 # if payload received isn't equal to content length, buffer
                 # res.body = json.loads(parsed_frame.payload)
+            
+
+
+def echo_json(dict):
+    message_text = dict["text"]
+    return {"messageType":"echo_server","text":message_text}
+
+def draw(dict):
+    # add to database
+    stroke = {"startX": dict["startX"], "startY": dict["startY"], "endX": dict["endX"], "endY": dict["endY"], "color": dict["color"]}
+    util.database.stroke_collection.insert_one(stroke)
+
+    # just return the same dict, it's to be broadcast to everyone anyways
+    return dict
 
 # if __name__ == '__main__':
     # database.chat_collection.drop()
     # database.user_collection.drop()
     # database.video_collection.drop()
+    # database.stroke_collection.drop()
