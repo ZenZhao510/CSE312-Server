@@ -652,60 +652,77 @@ def websocket(req, handler):
             # print(to_send)
             sockets[user_id].sendall(generate_ws_frame(json.dumps(to_send).encode()))
 
-            buffer = b""
-            payload_length = None
-            while True:
-                received_data = handler.request.recv(2048)
-                # print(received_data)
-                buffer += received_data
-                if payload_length is None:
-                    parsed_frame = parse_ws_frame(received_data)
-                    # print(parsed_frame.fin_bit)
-                    # print(parsed_frame.opcode)
-                    # print(parsed_frame.payload_length)
-                    # print(parsed_frame.payload)
-                    payload_length = parsed_frame.payload_length
+            try:
+                buffer = b""
+                payload_length = None
+                while True:
+                    received_data = handler.request.recv(2048)
+                    # print(received_data)
+                    buffer += received_data
+                    if payload_length is None:
+                        parsed_frame = parse_ws_frame(received_data)
+                        # print(parsed_frame.fin_bit)
+                        # print(parsed_frame.opcode)
+                        # print(parsed_frame.payload_length)
+                        # print(parsed_frame.payload)
+                        payload_length = parsed_frame.payload_length
 
-                # find which byte the payload starts at
-                payload_starts = 2
-                if 126 <= payload_length < 65536:
-                    payload_starts = 4
-                elif payload_length >= 65536:
-                    payload_starts = 10
-                if (buffer[1] & 0b10000000) >> 7 == 1:
-                    payload_starts += 4
-                
-                # print(payload_starts)
-                if payload_length is not None and len(buffer) >= payload_length + payload_starts:
-                    parsed_frame = parse_ws_frame(buffer)
-                    buffer = buffer[payload_starts+payload_length:]
-                    # print(buffer)
-                    payload_length = None
-                    # print(payload_length)
+                    # find which byte the payload starts at
+                    payload_starts = 2
+                    if 126 <= payload_length < 65536:
+                        payload_starts = 4
+                    elif payload_length >= 65536:
+                        payload_starts = 10
+                    if (buffer[1] & 0b10000000) >> 7 == 1:
+                        payload_starts += 4
+                    
                     # print(payload_starts)
-                    # print(parsed_frame.fin_bit)
-                    # print(parsed_frame.opcode)
-                    # print(parsed_frame.payload_length)
-                    # print(parsed_frame.payload)
-                    message_dict = json.loads(parsed_frame.payload.decode())
-                    if "messageType" in message_dict:
-                        type = message_dict["messageType"]
-                        if type == "echo_client":
-                            to_send = echo_json(message_dict)
-                            handler.request.sendall(generate_ws_frame(json.dumps(to_send).encode()))
-                        if type == "drawing":
-                            to_send = draw(message_dict)
-                            # send to all users the same content (minus masking which is why we have to generate still)
-                            for username in sockets.keys():
-                                try:
-                                    sockets[username].sendall(generate_ws_frame(json.dumps(to_send).encode()))
-                                except:
-                                    print("error with sending drawing")
-                                    continue
+                    if payload_length is not None and len(buffer) >= payload_length + payload_starts:
+                        parsed_frame = parse_ws_frame(buffer)
+                        buffer = buffer[payload_starts+payload_length:]
+                        # print(buffer)
+                        payload_length = None
+                        # print(payload_length)
+                        # print(payload_starts)
+                        # print(parsed_frame.fin_bit)
+                        # print(parsed_frame.opcode)
+                        # print(parsed_frame.payload_length)
+                        # print(parsed_frame.payload)
+                        message_dict = json.loads(parsed_frame.payload.decode())
+                        if "messageType" in message_dict:
+                            type = message_dict["messageType"]
+                            if type == "echo_client":
+                                to_send = echo_json(message_dict)
+                                handler.request.sendall(generate_ws_frame(json.dumps(to_send).encode()))
+                            if type == "drawing":
+                                to_send = draw(message_dict)
+                                # send to all users the same content (minus masking which is why we have to generate still)
+                                for username in sockets.keys():
+                                    try:
+                                        sockets[username].sendall(generate_ws_frame(json.dumps(to_send).encode()))
+                                    except:
+                                        print("error with sending drawing")
+                                        continue
+            except:
+                print("error connecting to user")
+            finally:
+                sockets.pop(user_id)
+                users = []
+                for username in sockets.keys():
+                    users.append({"username":username})
+                for username in sockets.keys():
+                    try:
+                        # print(username)
+                        to_send = {"messageType":"active_users_list", "users":users}
+                        # print(to_send)
+                        # for some stupid reason calling for socket in sockets doesn't work so here's by id
+                        sockets[username].sendall(generate_ws_frame(json.dumps(to_send).encode()))
+                    except:
+                        # print("error with active_users_list")
+                        continue
 
                 # if payload received isn't equal to content length, buffer
                 # res.body = json.loads(parsed_frame.payload)
-            
 
 
 def echo_json(dict):
