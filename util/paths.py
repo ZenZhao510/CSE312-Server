@@ -627,13 +627,13 @@ def websocket(req, handler):
 
             # send user init_strokes and active_user_lists
             # code to send to all sockets (probably useful for broadcasting, i.e. active_user_lists)
-            users = []
+            active_users = []
             for username in sockets.keys():
-                users.append({"username":username})
+                active_users.append({"username":username})
             for username in sockets.keys():
                 try:
                     # print(username)
-                    to_send = {"messageType":"active_users_list", "users":users}
+                    to_send = {"messageType":"active_users_list", "users":active_users}
                     # print(to_send)
                     # for some stupid reason calling for socket in sockets doesn't work so here's by id
                     sockets[username].sendall(generate_ws_frame(json.dumps(to_send).encode()))
@@ -655,7 +655,7 @@ def websocket(req, handler):
             try:
                 buffer = b""
                 continuation_payload = None
-                print("-- Cleared continuation payload --")
+                # print("-- Cleared continuation payload --")
                 payload_length = None
                 while True:
                     received_data = handler.request.recv(2048)
@@ -726,6 +726,25 @@ def websocket(req, handler):
                                         except:
                                             print("error with sending drawing")
                                             continue
+                                if type == "get_all_users":
+                                    to_send = all_users()
+                                    handler.request.sendall(generate_ws_frame(json.dumps(to_send).encode()))
+                                if type == "select_user":
+                                    # send message history
+                                    to_send = select_user(user_id, message_dict)
+                                    handler.request.sendall(generate_ws_frame(json.dumps(to_send).encode()))
+                                if type == "direct_message":
+                                    to_send = dm(user_id, message_dict)
+                                    generated = generate_ws_frame(json.dumps(to_send).encode())
+                                    handler.request.sendall(generated)
+                                    try:
+                                        sockets[message_dict["targetUser"]].sendall(generated)
+                                    except:
+                                        print("Target User Not Connected")
+                                    
+
+
+
                         else:
                             # print(parsed_frame.payload)
                             # print("---- To be Continued ----")
@@ -741,13 +760,13 @@ def websocket(req, handler):
                 print("error connecting to user")
             finally:
                 sockets.pop(user_id)
-                users = []
+                active_users = []
                 for username in sockets.keys():
-                    users.append({"username":username})
+                    active_users.append({"username":username})
                 for username in sockets.keys():
                     try:
                         # print(username)
-                        to_send = {"messageType":"active_users_list", "users":users}
+                        to_send = {"messageType":"active_users_list", "users":active_users}
                         # print(to_send)
                         # for some stupid reason calling for socket in sockets doesn't work so here's by id
                         sockets[username].sendall(generate_ws_frame(json.dumps(to_send).encode()))
@@ -770,6 +789,32 @@ def draw(dict):
 
     # just return the same dict, it's to be broadcast to everyone anyways
     return dict
+
+def all_users():
+    all_users = list(util.database.user_collection.find({}))
+    user_list = []
+    for user in all_users:
+        user_list.append({"username":user["username"]})
+    to_send = {"messageType": "all_users_list", "users":user_list}
+    return to_send
+
+def select_user(user_a, dict):
+    user_b = dict["targetUser"]
+    messages = util.database.dm_collection.find({"$or": [{"fromUser": user_a, "targetUser": user_b},{"fromUser": user_b, "targetUser": user_a}]})
+    if messages is not None:
+        messages.sort("timestamp", 1)
+    message_history = []
+    for message in messages:
+        message_history.append({"messageType": "direct_message", "fromUser": message["fromUser"], "text": message["text"]})
+    to_send = {"messageType": "message_history", "messages": message_history}
+    return to_send
+
+def dm(user_a, dict):
+    message = {"fromUser": user_a, "targetUser": dict["targetUser"], "text": dict["text"], "timestamp": datetime.datetime.now().strftime("%c")}
+    util.database.dm_collection.insert_one(message)
+    to_send = {"messageType": "direct_message", "fromUser": user_a, "text": dict["text"]}
+    return to_send
+
 
 # if __name__ == '__main__':
     # database.chat_collection.drop()
