@@ -654,13 +654,16 @@ def websocket(req, handler):
 
             try:
                 buffer = b""
+                continuation_payload = None
+                print("-- Cleared continuation payload --")
                 payload_length = None
                 while True:
                     received_data = handler.request.recv(2048)
                     # print(received_data)
                     buffer += received_data
                     if payload_length is None:
-                        parsed_frame = parse_ws_frame(received_data)
+                        # have to set parsed_frame to buffer, not received_data, as back to back frames might have headers already in buffer
+                        parsed_frame = parse_ws_frame(buffer)
                         # print(parsed_frame.fin_bit)
                         # print(parsed_frame.opcode)
                         # print(parsed_frame.payload_length)
@@ -676,9 +679,11 @@ def websocket(req, handler):
                     if (buffer[1] & 0b10000000) >> 7 == 1:
                         payload_starts += 4
                     
-                    # print(payload_starts)
+                    # the full request is read by this point
+                    # start parsing it
                     if payload_length is not None and len(buffer) >= payload_length + payload_starts:
                         parsed_frame = parse_ws_frame(buffer)
+                        # print(buffer)
                         buffer = buffer[payload_starts+payload_length:]
                         # print(buffer)
                         payload_length = None
@@ -688,21 +693,50 @@ def websocket(req, handler):
                         # print(parsed_frame.opcode)
                         # print(parsed_frame.payload_length)
                         # print(parsed_frame.payload)
-                        message_dict = json.loads(parsed_frame.payload.decode())
-                        if "messageType" in message_dict:
-                            type = message_dict["messageType"]
-                            if type == "echo_client":
-                                to_send = echo_json(message_dict)
-                                handler.request.sendall(generate_ws_frame(json.dumps(to_send).encode()))
-                            if type == "drawing":
-                                to_send = draw(message_dict)
-                                # send to all users the same content (minus masking which is why we have to generate still)
-                                for username in sockets.keys():
-                                    try:
-                                        sockets[username].sendall(generate_ws_frame(json.dumps(to_send).encode()))
-                                    except:
-                                        print("error with sending drawing")
-                                        continue
+
+                        # if finbit is 0, it signifies that it is a continuation frame, and that the whole payload has not been received yet
+                        if (parsed_frame.fin_bit == 1):
+                            message_dict = None
+
+                            # if there weren't continuation frames before, the cont payload would be None
+                            if continuation_payload == None:
+                                # print("-- no continuation frames needed --")
+                                message_dict = json.loads(parsed_frame.payload.decode())
+                            else:
+                                # print(continuation_payload)
+                                # print("-- continuation needed --")
+                                continuation_payload += parsed_frame.payload
+                                # print(continuation_payload)
+                                # print("-- added last frame to continued payload")
+                                message_dict = json.loads(continuation_payload.decode())
+                                continuation_payload = None
+
+                            if "messageType" in message_dict:
+                                type = message_dict["messageType"]
+                                if type == "echo_client":
+                                    to_send = echo_json(message_dict)
+                                    # print(to_send)
+                                    handler.request.sendall(generate_ws_frame(json.dumps(to_send).encode()))
+                                if type == "drawing":
+                                    to_send = draw(message_dict)
+                                    # send to all users the same content (minus masking which is why we have to generate still)
+                                    for username in sockets.keys():
+                                        try:
+                                            sockets[username].sendall(generate_ws_frame(json.dumps(to_send).encode()))
+                                        except:
+                                            print("error with sending drawing")
+                                            continue
+                        else:
+                            # print(parsed_frame.payload)
+                            # print("---- To be Continued ----")
+                            if continuation_payload == None:
+                                continuation_payload = parsed_frame.payload
+                                # print(continuation_payload)
+                                # print("----- New Payload for Continuation -----")
+                            else:
+                                continuation_payload += parsed_frame.payload
+                                # print(continuation_payload)
+                                # print("------ Added Payload to Continuation ------")
             except:
                 print("error connecting to user")
             finally:

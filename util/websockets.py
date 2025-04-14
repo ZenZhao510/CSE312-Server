@@ -119,7 +119,7 @@ class WS_Frame:
                 
             # print(mask_list)
             # get payload after mask bytes
-            payload_array = bytes[payload_start:]
+            payload_array = bytes[payload_start:payload_start+self.payload_length]
             # print(payload_array)
             # print(len(payload_array))
             # for every four bytes of payload, XOR with each byte of mask
